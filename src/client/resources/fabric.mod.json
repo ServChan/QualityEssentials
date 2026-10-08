@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "qualityessentials",
+  "version": "${version}",
+  "name": "QualityEssentials",
+  "description": "Quality of life in one mod: food and saturation, what-am-I-looking-at panel, effect timers, armor and tool HUD, dark loading screen and a keyboard map of key bindings. Every module can be turned off and steps aside when the original mod is installed.",
+  "authors": [
+    "LTS_Server"
+  ],
+  "license": "MIT",
+  "icon": "assets/qualityessentials/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "org.lts.qualityessentials.QualityEssentialsClient"
+    ],
+    "modmenu": [
+      "org.lts.qualityessentials.compat.QualityEssentialsModMenu"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "qualityessentials.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-lifecycle-events-v1": "*",
+    "fabric-key-mapping-api-v1": "*",
+    "fabric-screen-api-v1": "*",
+    "fabric-rendering-v1": "*",
+    "fabric-item-api-v1": "*"
+  },
+  "suggests": {
+    "modmenu": "*",
+    "infomod": "*"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "org.lts.qualityessentials.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "HudMixin",
+    "LoadingOverlayMixin",
+    "MultiPlayerGameModeAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

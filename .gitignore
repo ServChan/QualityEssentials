@@ -1,0 +1,54 @@
+# Gradle & Build outputs
+.gradle/
+.gradle-user/
+build/
+out/
+bin/
+classes/
+/libs/
+/mappings/
+/assets/
+
+# Minecraft run directories, configs & logs
+run/
+runs/
+config/
+logs/
+crash-reports/
+*.log
+*.tmp
+hs_err_pid*
+replay_pid*
+javap*.txt
+
+# IDE, Editor & Tool directories
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.claude/
+.gemini/
+.settings/
+.classpath
+.project
+.factorypath
+*.launch
+scratch/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Agent metadata
+AGENTS.md
+**/AGENTS.md
+CLAUDE.md
+**/CLAUDE.md
+.codex/
+**/.codex/
+.agents/
+**/.agents/
+.agent-notes/
+**/.agent-notes/
