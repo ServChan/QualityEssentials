@@ -9,6 +9,7 @@ public enum Module {
     EFFECTS("Status Effect Timer", "statuseffecttimer", "status-effect-timer", "status_effect_timer", "statuseffectbars",
             "status-effect-bars"),
     EQUIPMENT("Armor HUD", "armorhud", "armor-hud", "armor_hud", "armordurabilityhud", "armor-durability-hud", "durabilityhud"),
+    STATS("FPS Display", "fpsdisplay", "fps-display", "fps_display"),
     DARK_SCREEN("Dark Loading Screen", "dark-loading-screen", "darkloadingscreen", "dark_loading_screen"),
     KEYBOARD("BindBoard", "bindboard");
 

@@ -84,6 +84,39 @@ public final class FoodHud {
         }
     }
 
+    public static void preview(GuiGraphicsExtractor graphics, int right, int top, QEConfig config) {
+        int food = 13;
+        float saturation = 7f;
+        Identifier empty = Identifier.withDefaultNamespace("hud/food_empty");
+        for (int icon = 0; icon < 10; icon++) {
+            int x = right - icon * 8 - 9;
+            graphics.blitSprite(RenderPipelines.GUI_TEXTURED, empty, x, top, 9, 9);
+            FoodMath.Fill fill = FoodMath.iconFill(food, icon);
+            if (fill != FoodMath.Fill.EMPTY) {
+                graphics.blitSprite(RenderPipelines.GUI_TEXTURED, fill == FoodMath.Fill.FULL ? FOOD_FULL : FOOD_HALF, x, top, 9, 9);
+            }
+        }
+        if (config.foodSaturationOverlay) {
+            drawSaturation(graphics, saturation, top, right, 0xFFFFFFFF, -1f);
+        }
+        if (config.foodHeldPreview) {
+            FoodMath.Result after = FoodMath.afterEating(food, saturation, 8, 12.8f);
+            float pulse = 0.25f + 0.45f * (Mth.sin((net.minecraft.util.Util.getMillis() % 100000L) / 160f) * 0.5f + 0.5f);
+            int color = ARGB.white(pulse);
+            for (int icon = 0; icon < 10; icon++) {
+                FoodMath.Fill now = FoodMath.iconFill(food, icon);
+                FoodMath.Fill later = FoodMath.iconFill(after.food(), icon);
+                if (later != now && later != FoodMath.Fill.EMPTY) {
+                    graphics.blitSprite(RenderPipelines.GUI_TEXTURED, later == FoodMath.Fill.FULL ? FOOD_FULL : FOOD_HALF,
+                            right - icon * 8 - 9, top, 9, 9, color);
+                }
+            }
+            if (config.foodSaturationOverlay) {
+                drawSaturation(graphics, after.saturation(), top, right, color, saturation);
+            }
+        }
+    }
+
     private static void drawSaturation(GuiGraphicsExtractor graphics, float saturation, int top, int right, int color, float skipBelow) {
         for (int icon = 0; icon < 10; icon++) {
             FoodMath.Fill fill = FoodMath.iconFill(saturation, icon);

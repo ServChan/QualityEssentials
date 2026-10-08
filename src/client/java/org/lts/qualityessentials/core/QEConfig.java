@@ -13,7 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public final class QEConfig {
-    public static final int CURRENT_VERSION = 1;
+    public static final int CURRENT_VERSION = 2;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public int configVersion = CURRENT_VERSION;
@@ -33,6 +33,7 @@ public final class QEConfig {
     public boolean effectsShowLevel = true;
 
     public String equipmentAnchor = EquipmentAnchor.LEFT_CENTER.name();
+    public boolean equipmentHorizontal = false;
     public boolean equipmentShowPercent = false;
     public boolean equipmentShowAmmo = true;
     public boolean equipmentShowStackTotals = true;
@@ -41,10 +42,34 @@ public final class QEConfig {
 
     public boolean keyboardControlsButton = true;
 
+    public boolean statsFps = true;
+    public boolean statsLows = false;
+    public boolean statsPing = true;
+    public boolean statsTps = true;
+    public boolean statsMspt = false;
+    public boolean statsMemory = false;
+    public boolean statsEntities = false;
+    public boolean statsCoordinates = false;
+    public boolean statsCompact = true;
+
+    public Map<String, HudLayout> layouts = new LinkedHashMap<>();
+
     public QEConfig() {
         for (Module module : Module.values()) {
             modules.put(module.id(), true);
         }
+        for (HudElement element : HudElement.values()) {
+            layouts.put(element.id(), element.defaultLayout());
+        }
+    }
+
+    public HudLayout layout(HudElement element) {
+        HudLayout layout = layouts.get(element.id());
+        return layout == null ? element.defaultLayout() : layout;
+    }
+
+    public void setLayout(HudElement element, HudLayout layout) {
+        layouts.put(element.id(), layout.copy().sanitize());
     }
 
     public boolean enabled(Module module) {
@@ -64,6 +89,52 @@ public final class QEConfig {
         return DarkPreset.parse(darkScreenPreset);
     }
 
+    public void resetModule(Module module) {
+        QEConfig defaults = new QEConfig();
+        switch (module) {
+            case FOOD -> {
+                foodSaturationOverlay = defaults.foodSaturationOverlay;
+                foodHeldPreview = defaults.foodHeldPreview;
+                foodTooltip = defaults.foodTooltip;
+            }
+            case LOOK_AT -> {
+                layouts.put(HudElement.LOOK_AT.id(), HudElement.LOOK_AT.defaultLayout());
+                lookAtShowMod = defaults.lookAtShowMod;
+                lookAtShowHealth = defaults.lookAtShowHealth;
+                lookAtShowStates = defaults.lookAtShowStates;
+                lookAtShowHarvest = defaults.lookAtShowHarvest;
+                lookAtShowProgress = defaults.lookAtShowProgress;
+            }
+            case EFFECTS -> {
+                effectsShowTimer = defaults.effectsShowTimer;
+                effectsShowLevel = defaults.effectsShowLevel;
+            }
+            case EQUIPMENT -> {
+                equipmentAnchor = defaults.equipmentAnchor;
+                equipmentHorizontal = defaults.equipmentHorizontal;
+                layouts.put(HudElement.EQUIPMENT.id(), HudElement.EQUIPMENT.defaultLayout());
+                equipmentShowPercent = defaults.equipmentShowPercent;
+                equipmentShowAmmo = defaults.equipmentShowAmmo;
+                equipmentShowStackTotals = defaults.equipmentShowStackTotals;
+            }
+            case DARK_SCREEN -> darkScreenPreset = defaults.darkScreenPreset;
+            case KEYBOARD -> keyboardControlsButton = defaults.keyboardControlsButton;
+            case STATS -> {
+                statsFps = defaults.statsFps;
+                statsLows = defaults.statsLows;
+                statsPing = defaults.statsPing;
+                statsTps = defaults.statsTps;
+                statsMspt = defaults.statsMspt;
+                statsMemory = defaults.statsMemory;
+                statsEntities = defaults.statsEntities;
+                statsCoordinates = defaults.statsCoordinates;
+                statsCompact = defaults.statsCompact;
+                layouts.put(HudElement.STATS.id(), HudElement.STATS.defaultLayout());
+            }
+        }
+        setEnabled(module, true);
+    }
+
     public QEConfig copy() {
         return GSON.fromJson(GSON.toJson(this), QEConfig.class).sanitize();
     }
@@ -80,8 +151,38 @@ public final class QEConfig {
         modules = cleaned;
         equipmentAnchor = EquipmentAnchor.parse(equipmentAnchor).name();
         darkScreenPreset = DarkPreset.parse(darkScreenPreset).name();
+        if (layouts == null) {
+            layouts = new LinkedHashMap<>();
+        }
+        Map<String, HudLayout> cleanedLayouts = new LinkedHashMap<>();
+        for (HudElement element : HudElement.values()) {
+            HudLayout layout = layouts.get(element.id());
+            cleanedLayouts.put(element.id(), layout == null ? element.defaultLayout() : layout.sanitize());
+        }
+        layouts = cleanedLayouts;
+        if (configVersion < 2) {
+            migrateEquipmentAnchor();
+        }
         configVersion = CURRENT_VERSION;
         return this;
+    }
+
+    private void migrateEquipmentAnchor() {
+        switch (EquipmentAnchor.parse(equipmentAnchor)) {
+            case HOTBAR_RIGHT -> {
+                equipmentHorizontal = true;
+                HudLayout layout = HudLayout.of(HudLayout.Anchor.BOTTOM_CENTER, -1, 1, 97, 0);
+                layout.opacity = 0.6f;
+                layouts.put(HudElement.EQUIPMENT.id(), layout);
+            }
+            case TOP_LEFT -> {
+                HudLayout layout = HudLayout.of(HudLayout.Anchor.TOP_LEFT, -1, -1, 4, 40);
+                layout.opacity = 0.6f;
+                layouts.put(HudElement.EQUIPMENT.id(), layout);
+            }
+            default -> {
+            }
+        }
     }
 
     public static QEConfig read(Path path) {

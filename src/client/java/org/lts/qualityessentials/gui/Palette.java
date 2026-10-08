@@ -25,6 +25,15 @@ public final class Palette {
     public static final int DANGER_DARK = 0xFF5A1E24;
     public static final int DANGER_TEXT = 0xFFFFC0C0;
     public static final int WARNING = 0xFFFFB74D;
+    public static final int SUCCESS = 0xFF55E07A;
+    public static final int HUD_PANEL = 0xE00B1119;
+    public static final int HUD_BORDER = 0xFF2E435E;
+    public static final int HUD_TRACK = 0xFF1B2636;
+    public static final int MOD_NAME = 0xFF6F8CFF;
+    public static final int HEALTH = 0xFFE5484D;
+    public static final int HOSTILE = 0xFFE5484D;
+    public static final int PASSIVE = 0xFF55E07A;
+    public static final int PLAYER = 0xFFFFD54F;
     public static final int FOCUS = 0xFFFFFFFF;
     public static final int BADGE = 0xFFFFD54F;
     public static final int BADGE_TEXT = 0xFF1A1A1A;

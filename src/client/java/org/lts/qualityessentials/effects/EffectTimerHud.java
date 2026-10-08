@@ -13,6 +13,8 @@ import org.lts.qualityessentials.core.QEConfig;
 import java.util.Collection;
 
 public final class EffectTimerHud {
+    private static final int BACKING = 0xB0000000;
+
     private EffectTimerHud() {
     }
 
@@ -29,8 +31,6 @@ public final class EffectTimerHud {
         if (effects.isEmpty() || (screen != null && screen.showsActiveEffects())) {
             return;
         }
-        QEConfig config = QE.config();
-        Font font = minecraft.font;
         int beneficial = 0;
         int harmful = 0;
         for (MobEffectInstance effect : Ordering.natural().reverse().sortedCopy(effects)) {
@@ -47,16 +47,25 @@ public final class EffectTimerHud {
                 x -= 25 * harmful;
                 y += 26;
             }
-            if (config.effectsShowTimer) {
-                String time = EffectFormat.duration(effect.getDuration(), effect.isInfiniteDuration());
-                int color = EffectFormat.durationColor(effect.getDuration(), effect.isInfiniteDuration());
-                graphics.text(font, time, x + 12 - font.width(time) / 2, y + 15, color, true);
-            }
-            if (config.effectsShowLevel) {
-                String level = EffectFormat.level(effect.getAmplifier());
-                if (!level.isEmpty()) {
-                    graphics.text(font, level, x + 22 - font.width(level), y + 2, 0xFFFFFFFF, true);
-                }
+            overlay(graphics, minecraft.font, x, y, effect.getDuration(), effect.isInfiniteDuration(), effect.getAmplifier(), QE.config());
+        }
+    }
+
+    public static void overlay(GuiGraphicsExtractor graphics, Font font, int x, int y, int duration, boolean infinite, int amplifier, QEConfig config) {
+        if (config.effectsShowTimer) {
+            String time = EffectFormat.duration(duration, infinite);
+            int width = font.width(time);
+            int tx = x + 12 - width / 2;
+            graphics.fill(tx - 1, y + 15, tx + width, y + 23, BACKING);
+            graphics.text(font, time, tx, y + 15, EffectFormat.durationColor(duration, infinite), false);
+        }
+        if (config.effectsShowLevel) {
+            String level = EffectFormat.level(amplifier);
+            if (!level.isEmpty()) {
+                int width = font.width(level);
+                int lx = x + 23 - width;
+                graphics.fill(lx - 1, y + 1, lx + width, y + 9, BACKING);
+                graphics.text(font, level, lx, y + 1, 0xFFFFE066, false);
             }
         }
     }

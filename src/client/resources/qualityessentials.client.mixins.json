@@ -5,7 +5,9 @@
   "client": [
     "HudMixin",
     "LoadingOverlayMixin",
-    "MultiPlayerGameModeAccessor"
+    "MultiPlayerGameModeAccessor",
+    "BossHealthOverlayAccessor",
+    "ClientPacketListenerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
