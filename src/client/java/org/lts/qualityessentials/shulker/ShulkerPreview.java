@@ -1,6 +1,7 @@
 package org.lts.qualityessentials.shulker;
 
 import net.fabricmc.fabric.api.client.rendering.v1.ClientTooltipComponentCallback;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.DyeColor;
@@ -47,7 +48,8 @@ public final class ShulkerPreview {
             DyeColor color = box.getColor();
             accent = color == null ? UNDYED : 0xFF000000 | color.getTextureDiffuseColor();
         }
-        return Optional.of(build(contents.itemCopies().toList(), contents.size(), shulkerBox, accent, QE.config()));
+        boolean summary = QE.config().shulkerCompact != Minecraft.getInstance().hasShiftDown();
+        return Optional.of(build(contents.itemCopies().toList(), contents.size(), shulkerBox, accent, summary));
     }
 
     public static ShulkerTooltip sample(QEConfig config) {
@@ -64,11 +66,15 @@ public final class ShulkerPreview {
         items.add(new ItemStack(Items.REDSTONE, 64));
         items.add(new ItemStack(Items.TORCH, 64));
         items.add(new ItemStack(Items.DIAMOND_PICKAXE));
-        return build(items, 27, true, 0xFF000000 | DyeColor.LIGHT_BLUE.getTextureDiffuseColor(), config);
+        return build(items, 27, true, 0xFF000000 | DyeColor.LIGHT_BLUE.getTextureDiffuseColor(), config.shulkerCompact);
     }
 
-    static ShulkerTooltip build(List<ItemStack> raw, int declaredSize, boolean shulkerBox, int accent, QEConfig config) {
-        if (config.shulkerCompact) {
+    static ShulkerTooltip build(List<ItemStack> raw, int declaredSize, boolean shulkerBox, int accent, boolean summary) {
+        int total = 0;
+        for (ItemStack stack : raw) {
+            total += stack.getCount();
+        }
+        if (summary) {
             List<ItemStack> filled = raw.stream().filter(stack -> !stack.isEmpty()).toList();
             List<ShulkerContents.Group<ItemStack>> groups = ShulkerContents.merge(filled, ItemStack::getCount, ItemStack::isSameItemSameComponents);
             List<ItemStack> slots = new ArrayList<>();
@@ -77,7 +83,7 @@ public final class ShulkerPreview {
                 slots.add(group.item.copyWithCount(1));
                 counts.add(group.count);
             }
-            return new ShulkerTooltip(slots, counts, Math.min(ShulkerContents.COLUMNS, Math.max(1, slots.size())), accent);
+            return new ShulkerTooltip(slots, counts, Math.min(ShulkerContents.COLUMNS, Math.max(1, slots.size())), accent, true, total);
         }
         int lastFilled = -1;
         for (int i = 0; i < raw.size(); i++) {
@@ -93,6 +99,6 @@ public final class ShulkerPreview {
             slots.add(stack);
             counts.add(stack.getCount());
         }
-        return new ShulkerTooltip(slots, counts, ShulkerContents.COLUMNS, accent);
+        return new ShulkerTooltip(slots, counts, ShulkerContents.COLUMNS, accent, false, total);
     }
 }

@@ -3,13 +3,16 @@ package org.lts.qualityessentials.shulker;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 public final class ClientShulkerTooltip implements ClientTooltipComponent {
     public static final int CELL = 18;
     private static final int TOP = 3;
-    private static final int CELL_FILL = 0x24FFFFFF;
-    private static final int CELL_EDGE = 0x1CFFFFFF;
+    private static final int FOOTER = 11;
+    private static final Identifier SLOT = Identifier.withDefaultNamespace("container/slot");
 
     private final ShulkerTooltip tooltip;
 
@@ -17,12 +20,17 @@ public final class ClientShulkerTooltip implements ClientTooltipComponent {
         this.tooltip = tooltip;
     }
 
-    public static int width(ShulkerTooltip tooltip) {
-        return tooltip.columns() * CELL;
+    public static Component footer(ShulkerTooltip tooltip) {
+        return Component.translatable(tooltip.summary() ? "qualityessentials.shulker.footer.summary" : "qualityessentials.shulker.footer.grid",
+                tooltip.total());
+    }
+
+    public static int width(Font font, ShulkerTooltip tooltip) {
+        return Math.max(tooltip.columns() * CELL, font.width(footer(tooltip)));
     }
 
     public static int height(ShulkerTooltip tooltip) {
-        return TOP + tooltip.rows() * CELL + 2;
+        return TOP + tooltip.rows() * CELL + 2 + FOOTER;
     }
 
     @Override
@@ -32,7 +40,7 @@ public final class ClientShulkerTooltip implements ClientTooltipComponent {
 
     @Override
     public int getWidth(Font font) {
-        return width(tooltip);
+        return width(font, tooltip);
     }
 
     @Override
@@ -42,13 +50,12 @@ public final class ClientShulkerTooltip implements ClientTooltipComponent {
 
     public static void draw(GuiGraphicsExtractor graphics, Font font, ShulkerTooltip tooltip, int x, int y) {
         int columns = tooltip.columns();
-        graphics.fill(x, y, x + columns * CELL - 1, y + 1, tooltip.accent());
+        graphics.fill(x, y, x + width(font, tooltip), y + 1, tooltip.accent());
         int top = y + TOP;
         for (int i = 0; i < tooltip.slots().size(); i++) {
             int cx = x + i % columns * CELL;
             int cy = top + i / columns * CELL;
-            graphics.fill(cx, cy, cx + CELL - 1, cy + CELL - 1, CELL_FILL);
-            graphics.fill(cx, cy, cx + CELL - 1, cy + 1, CELL_EDGE);
+            graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT, cx, cy, CELL, CELL);
             ItemStack stack = tooltip.slots().get(i);
             if (stack.isEmpty()) {
                 continue;
@@ -57,5 +64,6 @@ public final class ClientShulkerTooltip implements ClientTooltipComponent {
             int count = tooltip.counts().get(i);
             graphics.itemDecorations(font, stack, cx + 1, cy + 1, count > 1 ? ShulkerContents.countLabel(count) : null);
         }
+        graphics.text(font, footer(tooltip), x, top + tooltip.rows() * CELL + 3, 0xFF9AA5B8, false);
     }
 }

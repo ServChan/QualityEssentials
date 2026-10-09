@@ -480,7 +480,7 @@ public class SettingsScreen extends Screen {
                 }
                 ShulkerTooltip sample = ShulkerPreview.sample(working);
                 Component name = Component.translatable("block.minecraft.light_blue_shulker_box");
-                int w = Math.max(ClientShulkerTooltip.width(sample), this.font.width(name)) + 8;
+                int w = Math.max(ClientShulkerTooltip.width(this.font, sample), this.font.width(name)) + 8;
                 int h = 14 + ClientShulkerTooltip.height(sample) + 2;
                 float scale = Math.min(1f, (inner - 2) / (float) h);
                 graphics.pose().pushMatrix();
