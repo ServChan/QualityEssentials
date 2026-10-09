@@ -13,6 +13,7 @@ import org.lts.qualityessentials.core.QE;
 import org.lts.qualityessentials.core.QEConfig;
 import org.lts.qualityessentials.equipment.EquipmentHud;
 import org.lts.qualityessentials.lookat.LookAtHud;
+import org.lts.qualityessentials.mount.MountHud;
 import org.lts.qualityessentials.stats.StatsHud;
 
 import java.util.EnumMap;
@@ -170,6 +171,7 @@ public class HudEditorScreen extends Screen {
             }
             case EQUIPMENT -> EquipmentHud.size(this.font, entries(), working.equipmentHorizontal);
             case STATS -> StatsHud.size(this.font, stats(), working.statsCompact);
+            case MOUNT -> MountHud.size(this.font, mount());
         };
     }
 
@@ -192,6 +194,16 @@ public class HudEditorScreen extends Screen {
         }
         boolean singleplayer = this.minecraft != null && this.minecraft.hasSingleplayerServer();
         return StatsHud.sample(working, singleplayer);
+    }
+
+    private MountHud.Info mount() {
+        if (this.minecraft != null && this.minecraft.player != null) {
+            MountHud.Info live = MountHud.collect(this.minecraft.player, working);
+            if (live != null) {
+                return live;
+            }
+        }
+        return MountHud.preview(working);
     }
 
     private void measureAll() {
@@ -256,6 +268,7 @@ public class HudEditorScreen extends Screen {
             }
             case EQUIPMENT -> EquipmentHud.draw(graphics, this.font, entries(), working.equipmentHorizontal, layout.opacity);
             case STATS -> StatsHud.draw(graphics, this.font, stats(), working.statsCompact, layout.opacity);
+            case MOUNT -> MountHud.draw(graphics, this.font, mount(), layout.opacity);
         }
         graphics.pose().popMatrix();
         boolean isSelected = element == selected;

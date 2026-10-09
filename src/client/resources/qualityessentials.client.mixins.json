@@ -7,7 +7,12 @@
     "LoadingOverlayMixin",
     "MultiPlayerGameModeAccessor",
     "BossHealthOverlayAccessor",
-    "ClientPacketListenerMixin"
+    "ClientPacketListenerMixin",
+    "HudInvoker",
+    "ItemStackMixin",
+    "ItemContainerContentsMixin",
+    "AbstractContainerScreenMixin",
+    "ScreenshotMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -7,6 +7,11 @@ public final class StatFormat {
     public static final int OKAY = 0xFFFFE066;
     public static final int BAD = 0xFFFF6B6B;
     public static final int NEUTRAL = 0xFFE0E0E0;
+    public static final int NIGHT = 0xFF8FB8FF;
+    public static final int RAIN = 0xFF6FA8FF;
+    public static final int SNOW = 0xFFE6F2FF;
+    public static final int THUNDER = 0xFFFFE066;
+    public static final int DAY_TICKS = 24000;
 
     private StatFormat() {
     }
@@ -38,6 +43,22 @@ public final class StatFormat {
 
     public static String gigabytes(long bytes) {
         return String.format(Locale.ROOT, "%.1f", bytes / (1024.0 * 1024.0 * 1024.0));
+    }
+
+    public static String clock(long ticks) {
+        long time = Math.floorMod(ticks + 6000, DAY_TICKS);
+        long hours = time / 1000;
+        long minutes = time % 1000 * 60 / 1000;
+        return String.format(Locale.ROOT, "%02d:%02d", hours, minutes);
+    }
+
+    public static long day(long ticks) {
+        return Math.floorDiv(ticks, DAY_TICKS) + 1;
+    }
+
+    public static boolean canSleep(long ticks, boolean thundering) {
+        long time = Math.floorMod(ticks, DAY_TICKS);
+        return thundering || time >= 12542 && time <= 23459;
     }
 
     public static int percentile99Fps(long[] frameNanos, int count) {

@@ -3,7 +3,7 @@
   "id": "qualityessentials",
   "version": "${version}",
   "name": "QualityEssentials",
-  "description": "Quality of life in one mod: food and saturation, what-am-I-looking-at panel, effect timers, armor and tool HUD, dark loading screen and a keyboard map of key bindings. Every module can be turned off and steps aside when the original mod is installed.",
+  "description": "Quality of life in one mod: food and saturation, what-am-I-looking-at panel, effect timers, armor and tool HUD, riding HUD, performance overlay, shulker box previews, new item stars, screenshot buttons, dark loading screen and a keyboard map of key bindings. Every module can be turned off and steps aside when the original mod is installed.",
   "authors": [
     "LTS_Server"
   ],

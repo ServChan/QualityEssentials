@@ -15,19 +15,24 @@ import org.lts.qualityessentials.core.QE;
 import java.util.function.BooleanSupplier;
 
 public final class ModuleCard extends AbstractButton {
-    public static final int HEIGHT = 30;
+    public static final int HEIGHT = 28;
+    public static final int COMPACT_HEIGHT = 20;
+    public static final int MIN_HEIGHT = 18;
 
     private final Module module;
     private final ItemStack icon;
     private final BooleanSupplier selected;
     private final Runnable action;
 
-    public ModuleCard(int x, int y, int width, Module module, ItemStack icon, BooleanSupplier selected, Runnable action) {
-        super(x, y, width, HEIGHT, Component.translatable(module.translationKey()));
+    public ModuleCard(int x, int y, int width, int height, Module module, ItemStack icon, BooleanSupplier selected, Runnable action) {
+        super(x, y, width, height, Component.translatable(module.translationKey()));
         this.module = module;
         this.icon = icon;
         this.selected = selected;
         this.action = action;
+        if (height < HEIGHT) {
+            setTooltip(net.minecraft.client.gui.components.Tooltip.create(status(module)));
+        }
     }
 
     @Override
@@ -56,21 +61,33 @@ public final class ModuleCard extends AbstractButton {
         int x = getX();
         int y = getY();
         int w = getWidth();
+        int h = getHeight();
         boolean on = selected.getAsBoolean();
         boolean hovered = isHoveredOrFocused();
-        graphics.fill(x, y, x + w, y + HEIGHT - 2, on ? Palette.SURFACE_SELECTED : hovered ? Palette.SURFACE_HOVER : Palette.SURFACE);
+        graphics.fill(x, y, x + w, y + h, on ? Palette.SURFACE_SELECTED : hovered ? Palette.SURFACE_HOVER : Palette.SURFACE);
         if (on) {
-            graphics.fill(x, y, x + 2, y + HEIGHT - 2, Palette.ACCENT);
+            graphics.fill(x, y, x + 2, y + h, Palette.ACCENT);
         }
-        graphics.item(icon, x + 6, y + 6);
+        graphics.item(icon, x + 6, y + (h - 16) / 2);
         int textX = x + 28;
-        int maxWidth = w - textX + x - 6;
+        int color = statusColor(module);
+        boolean compact = h < HEIGHT;
+        int maxWidth = w - textX + x - (compact ? 14 : 6);
         String name = getMessage().getString();
         if (font.width(name) > maxWidth) {
             name = font.plainSubstrByWidth(name, maxWidth - 6) + "..";
         }
+        if (compact) {
+            graphics.text(font, name, textX, y + (h - 8) / 2, on ? Palette.TEXT_BRIGHT : Palette.TEXT, false);
+            int dotX = x + w - 9;
+            int dotY = y + h / 2 - 2;
+            graphics.fill(dotX, dotY, dotX + 4, dotY + 4, color);
+            if (isFocused()) {
+                graphics.outline(x - 1, y - 1, w + 2, h + 2, Palette.FOCUS);
+            }
+            return;
+        }
         graphics.text(font, name, textX, y + 5, on ? Palette.TEXT_BRIGHT : Palette.TEXT, false);
-        int color = statusColor(module);
         graphics.fill(textX, y + 18, textX + 4, y + 22, color);
         String status = status(module).getString();
         if (font.width(status) > maxWidth - 8) {
@@ -78,7 +95,7 @@ public final class ModuleCard extends AbstractButton {
         }
         graphics.text(font, status, textX + 7, y + 16, color, false);
         if (isFocused()) {
-            graphics.outline(x - 1, y - 1, w + 2, HEIGHT, Palette.FOCUS);
+            graphics.outline(x - 1, y - 1, w + 2, h + 2, Palette.FOCUS);
         }
     }
 

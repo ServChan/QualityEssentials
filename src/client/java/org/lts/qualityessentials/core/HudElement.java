@@ -5,7 +5,8 @@ import java.util.Locale;
 public enum HudElement {
     LOOK_AT(Module.LOOK_AT, HudLayout.Anchor.TOP_CENTER, 0, -1, 0, 4),
     EQUIPMENT(Module.EQUIPMENT, HudLayout.Anchor.MIDDLE_LEFT, -1, 0, 4, 0),
-    STATS(Module.STATS, HudLayout.Anchor.TOP_LEFT, -1, -1, 4, 4);
+    STATS(Module.STATS, HudLayout.Anchor.TOP_LEFT, -1, -1, 4, 4),
+    MOUNT(Module.MOUNT, HudLayout.Anchor.BOTTOM_CENTER, 1, 1, -126, -2);
 
     private final Module module;
     private final HudLayout.Anchor anchor;

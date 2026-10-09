@@ -3,10 +3,13 @@ package org.lts.qualityessentials.stats;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.biome.Biome;
 import org.lts.qualityessentials.core.HudElement;
 import org.lts.qualityessentials.core.HudPlacement;
 import org.lts.qualityessentials.core.Module;
@@ -96,6 +99,20 @@ public final class StatsHud {
             stats.add(new Stat(Component.translatable("qualityessentials.stats.coords"),
                     player.getBlockX() + " " + player.getBlockY() + " " + player.getBlockZ(), StatFormat.NEUTRAL));
         }
+        ClientLevel level = minecraft.level;
+        if (level != null && player != null && !level.dimensionType().hasFixedTime()) {
+            if (config.statsTime) {
+                long ticks = level.getDefaultClockTime();
+                stats.add(time(ticks, level.isThundering()));
+            }
+            if (config.statsWeather) {
+                BlockPos pos = player.blockPosition();
+                Biome.Precipitation precipitation = level.getBiome(pos).value().getPrecipitationAt(pos, level.getSeaLevel());
+                String kind = !level.isRaining() || precipitation == Biome.Precipitation.NONE ? "clear"
+                        : level.isThundering() ? "thunder" : precipitation == Biome.Precipitation.SNOW ? "snow" : "rain";
+                stats.add(weather(kind, config.statsCompact));
+            }
+        }
         return stats;
     }
 
@@ -130,7 +147,30 @@ public final class StatsHud {
         if (config.statsCoordinates) {
             stats.add(new Stat(Component.translatable("qualityessentials.stats.coords"), "128 64 -340", StatFormat.NEUTRAL));
         }
+        if (config.statsTime) {
+            stats.add(time(11 * StatFormat.DAY_TICKS + 8500, false));
+        }
+        if (config.statsWeather) {
+            stats.add(weather("rain", config.statsCompact));
+        }
         return stats;
+    }
+
+    private static Stat time(long ticks, boolean thundering) {
+        boolean sleep = StatFormat.canSleep(ticks, thundering);
+        return new Stat(Component.translatable("qualityessentials.stats.day", StatFormat.day(ticks)), StatFormat.clock(ticks),
+                sleep ? StatFormat.NIGHT : StatFormat.NEUTRAL);
+    }
+
+    private static Stat weather(String kind, boolean compact) {
+        int color = switch (kind) {
+            case "thunder" -> StatFormat.THUNDER;
+            case "snow" -> StatFormat.SNOW;
+            case "rain" -> StatFormat.RAIN;
+            default -> StatFormat.NEUTRAL;
+        };
+        Component label = compact ? Component.empty() : Component.translatable("qualityessentials.stats.weather");
+        return new Stat(label, Component.translatable("qualityessentials.stats.weather." + kind).getString(), color);
     }
 
     public static int[] size(Font font, List<Stat> stats, boolean compact) {
@@ -138,7 +178,8 @@ public final class StatsHud {
             int width = 0;
             for (int i = 0; i < stats.size(); i++) {
                 Stat stat = stats.get(i);
-                width += font.width(stat.value) + 3 + font.width(stat.label) + (i > 0 ? 9 : 0);
+                int label = font.width(stat.label);
+                width += font.width(stat.value) + (label > 0 ? 3 + label : 0) + (i > 0 ? 9 : 0);
             }
             return new int[]{width + PAD * 2, LINE + 3};
         }
@@ -165,9 +206,12 @@ public final class StatsHud {
                     x += 9;
                 }
                 graphics.text(font, stat.value, x, 2, stat.color, true);
-                x += font.width(stat.value) + 3;
-                graphics.text(font, stat.label, x, 2, Palette.TEXT_DIM, true);
-                x += font.width(stat.label);
+                x += font.width(stat.value);
+                int label = font.width(stat.label);
+                if (label > 0) {
+                    graphics.text(font, stat.label, x + 3, 2, Palette.TEXT_DIM, true);
+                    x += 3 + label;
+                }
             }
             return;
         }

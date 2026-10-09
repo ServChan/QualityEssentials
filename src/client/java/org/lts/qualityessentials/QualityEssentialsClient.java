@@ -18,6 +18,9 @@ import org.lts.qualityessentials.gui.SettingsScreen;
 import org.lts.qualityessentials.stats.StatsHud;
 import org.lts.qualityessentials.keyboard.KeyboardModule;
 import org.lts.qualityessentials.lookat.LookAtHud;
+import org.lts.qualityessentials.mount.MountHud;
+import org.lts.qualityessentials.newitems.NewItemTracker;
+import org.lts.qualityessentials.shulker.ShulkerPreview;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,13 +42,18 @@ public final class QualityEssentialsClient implements ClientModInitializer {
                 "key.qualityessentials.hud_editor", InputConstants.Type.KEYBOARD, InputConstants.UNKNOWN.getValue(), CATEGORY));
         KeyboardModule.init(CATEGORY);
         FoodHud.registerTooltip();
+        ShulkerPreview.register();
         HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Identifier.fromNamespaceAndPath(MOD_ID, "equipment"),
                 (graphics, tickCounter) -> EquipmentHud.extract(graphics));
         HudElementRegistry.attachElementAfter(VanillaHudElements.BOSS_BAR, Identifier.fromNamespaceAndPath(MOD_ID, "look_at"),
                 (graphics, tickCounter) -> LookAtHud.extract(graphics));
+        HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Identifier.fromNamespaceAndPath(MOD_ID, "mount"),
+                (graphics, tickCounter) -> MountHud.extract(graphics));
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "stats"), (graphics, tickCounter) -> StatsHud.extract(graphics));
         ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
             KeyboardModule.tick(minecraft);
+            MountHud.tick(minecraft);
+            NewItemTracker.tick(minecraft);
             while (editorKey.consumeClick()) {
                 if (minecraft.gui.screen() == null) {
                     minecraft.gui.setScreen(new HudEditorScreen(null, null));

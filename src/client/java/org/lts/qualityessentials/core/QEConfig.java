@@ -50,7 +50,22 @@ public final class QEConfig {
     public boolean statsMemory = false;
     public boolean statsEntities = false;
     public boolean statsCoordinates = false;
+    public boolean statsTime = true;
+    public boolean statsWeather = true;
     public boolean statsCompact = true;
+
+    public boolean mountPlayerFood = true;
+    public boolean mountPanel = true;
+    public boolean mountCurrentSpeed = true;
+
+    public boolean shulkerHideText = true;
+    public boolean shulkerCompact = false;
+
+    public boolean newItemsAnimate = true;
+
+    public boolean screenshotOpen = true;
+    public boolean screenshotFolder = true;
+    public boolean screenshotCopy = true;
 
     public Map<String, HudLayout> layouts = new LinkedHashMap<>();
 
@@ -128,8 +143,26 @@ public final class QEConfig {
                 statsMemory = defaults.statsMemory;
                 statsEntities = defaults.statsEntities;
                 statsCoordinates = defaults.statsCoordinates;
+                statsTime = defaults.statsTime;
+                statsWeather = defaults.statsWeather;
                 statsCompact = defaults.statsCompact;
                 layouts.put(HudElement.STATS.id(), HudElement.STATS.defaultLayout());
+            }
+            case MOUNT -> {
+                mountPlayerFood = defaults.mountPlayerFood;
+                mountPanel = defaults.mountPanel;
+                mountCurrentSpeed = defaults.mountCurrentSpeed;
+                layouts.put(HudElement.MOUNT.id(), HudElement.MOUNT.defaultLayout());
+            }
+            case SHULKER -> {
+                shulkerHideText = defaults.shulkerHideText;
+                shulkerCompact = defaults.shulkerCompact;
+            }
+            case NEW_ITEMS -> newItemsAnimate = defaults.newItemsAnimate;
+            case SCREENSHOTS -> {
+                screenshotOpen = defaults.screenshotOpen;
+                screenshotFolder = defaults.screenshotFolder;
+                screenshotCopy = defaults.screenshotCopy;
             }
         }
         setEnabled(module, true);

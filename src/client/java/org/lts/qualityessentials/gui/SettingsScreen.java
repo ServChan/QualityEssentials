@@ -21,6 +21,12 @@ import org.lts.qualityessentials.equipment.EquipmentHud;
 import org.lts.qualityessentials.food.FoodHud;
 import org.lts.qualityessentials.keyboard.KeyboardModule;
 import org.lts.qualityessentials.lookat.LookAtHud;
+import org.lts.qualityessentials.mount.MountHud;
+import org.lts.qualityessentials.newitems.NewItemTracker;
+import org.lts.qualityessentials.screenshot.ScreenshotActions;
+import org.lts.qualityessentials.shulker.ClientShulkerTooltip;
+import org.lts.qualityessentials.shulker.ShulkerPreview;
+import org.lts.qualityessentials.shulker.ShulkerTooltip;
 import org.lts.qualityessentials.stats.StatsHud;
 
 import java.util.ArrayList;
@@ -46,6 +52,7 @@ public class SettingsScreen extends Screen {
     private int bannerY;
     private int previewY;
     private int previewHeight;
+    private int cardHeight = ModuleCard.HEIGHT;
     private final List<RowLabel> rowLabels = new ArrayList<>();
 
     public SettingsScreen(Screen parent) {
@@ -61,14 +68,23 @@ public class SettingsScreen extends Screen {
         sidebarX = (this.width - layoutWidth) / 2;
         contentX = sidebarX + sidebarWidth + 12;
         contentWidth = layoutWidth - sidebarWidth - 12;
+        int count = Module.values().length;
+        int sidebarSpace = this.height - 34 - TOP;
+        cardHeight = ModuleCard.HEIGHT;
+        if (count * (cardHeight + CARD_GAP) > sidebarSpace) {
+            cardHeight = ModuleCard.COMPACT_HEIGHT;
+        }
+        if (count * (cardHeight + CARD_GAP) > sidebarSpace) {
+            cardHeight = Math.max(ModuleCard.MIN_HEIGHT, sidebarSpace / count - CARD_GAP);
+        }
         int y = TOP;
         for (Module module : Module.values()) {
             Module target = module;
-            addRenderableWidget(new ModuleCard(sidebarX, y, sidebarWidth, module, icon(module), () -> selected == target, () -> {
+            addRenderableWidget(new ModuleCard(sidebarX, y, sidebarWidth, cardHeight, module, icon(module), () -> selected == target, () -> {
                 selected = target;
                 rebuildWidgets();
             }));
-            y += ModuleCard.HEIGHT + CARD_GAP;
+            y += cardHeight + CARD_GAP;
         }
 
         rowLabels.clear();
@@ -81,16 +97,22 @@ public class SettingsScreen extends Screen {
             y += 22;
         }
         List<Option> options = options(selected);
-        int rows = options.size() + 1;
+        int choiceRows = (int) options.stream().filter(option -> option.choices != null).count();
+        int toggleRows = options.size() - choiceRows;
         int bottom = this.height - 34;
         previewY = y;
         previewHeight = previewHeight(false);
         int rowHeight = SwitchRow.HEIGHT;
-        if (previewY + previewHeight + 6 + rows * rowHeight > bottom) {
+        int columns = 1;
+        if (previewY + previewHeight + 6 + rowsHeight(choiceRows, toggleRows, columns, rowHeight) > bottom) {
             rowHeight = SwitchRow.COMPACT_HEIGHT;
         }
-        if (previewY + previewHeight + 6 + rows * rowHeight > bottom) {
-            previewHeight = Math.max(40, bottom - previewY - 6 - rows * rowHeight);
+        if (previewY + previewHeight + 6 + rowsHeight(choiceRows, toggleRows, columns, rowHeight) > bottom && toggleRows > 1) {
+            columns = 2;
+        }
+        int rowsHeight = rowsHeight(choiceRows, toggleRows, columns, rowHeight);
+        if (previewY + previewHeight + 6 + rowsHeight > bottom) {
+            previewHeight = Math.max(40, bottom - previewY - 6 - rowsHeight);
         }
         y = previewY + previewHeight + 6;
 
@@ -134,21 +156,36 @@ public class SettingsScreen extends Screen {
         master.active = blocker == null;
         y += rowHeight;
         boolean optionsActive = blocker == null && working.enabled(selected);
+        int columnWidth = columns == 1 ? contentWidth : (contentWidth - 6) / 2;
+        int column = 0;
         for (Option option : options) {
             if (option.choices != null) {
+                if (column > 0) {
+                    column = 0;
+                    y += rowHeight;
+                }
                 y = addChoiceRow(option, y, optionsActive, rowHeight);
             } else {
-                SwitchRow row = addRenderableWidget(new SwitchRow(contentX, y, contentWidth, rowHeight, Component.translatable(option.key),
+                int rowX = contentX + column * (columnWidth + 6);
+                SwitchRow row = addRenderableWidget(new SwitchRow(rowX, y, columnWidth, rowHeight, Component.translatable(option.key),
                         Component.translatable(option.key + ".hint"), () -> option.state.test(working), () -> {
                             option.action.accept(working);
                             apply();
                         }));
                 row.active = optionsActive;
-                y += rowHeight;
+                column++;
+                if (column == columns) {
+                    column = 0;
+                    y += rowHeight;
+                }
             }
         }
         addRenderableWidget(new FlatButton(this.width / 2 - 75, this.height - 25, 150, 20, Component.translatable("qualityessentials.settings.done"),
                 FlatButton.Style.PRIMARY, this::onClose));
+    }
+
+    private static int rowsHeight(int choiceRows, int toggleRows, int columns, int rowHeight) {
+        return (1 + choiceRows + (toggleRows + columns - 1) / columns) * rowHeight;
     }
 
     private int previewHeight(boolean compact) {
@@ -156,9 +193,37 @@ public class SettingsScreen extends Screen {
         return switch (selected) {
             case LOOK_AT -> LookAtHud.height(LookAtHud.preview(working)) + 22;
             case EQUIPMENT -> compact ? 52 : 60;
-            case STATS -> working.statsCompact ? (compact ? 40 : 46) : (compact ? 70 : 104);
+            case STATS -> statsPreview().height() + 22;
+            case MOUNT -> MountHud.size(this.font, MountHud.preview(working))[1] + 26;
+            case SHULKER -> ClientShulkerTooltip.height(ShulkerPreview.sample(working)) + 36;
+            case SCREENSHOTS -> screenshotLines().size() * 10 + 30;
             default -> compact ? 46 : 58;
         };
+    }
+
+    private StatsPreview statsPreview() {
+        List<StatsHud.Stat> server = StatsHud.sample(working, false);
+        List<StatsHud.Stat> single = StatsHud.sample(working, true);
+        int[] a = StatsHud.size(this.font, server, working.statsCompact);
+        int[] b = StatsHud.size(this.font, single, working.statsCompact);
+        int room = contentWidth - 20;
+        float scale = Math.min(1f, room / (float) Math.max(a[0], b[0]));
+        int aw = Math.round(a[0] * scale);
+        int ah = Math.round(a[1] * scale);
+        int bh = Math.round(b[1] * scale);
+        int x1 = contentX + 10;
+        int sideX = Math.max(x1 + aw + 16, contentX + contentWidth / 2 + 4);
+        boolean side = sideX + Math.round(b[0] * scale) <= contentX + contentWidth - 8;
+        if (side) {
+            return new StatsPreview(server, single, scale, x1, 0, sideX, 0, 11 + Math.max(ah, bh));
+        }
+        int secondY = 11 + ah + 6;
+        return new StatsPreview(server, single, scale, x1, 0, x1, secondY, secondY + 11 + bh);
+    }
+
+    private List<FormattedCharSequence> screenshotLines() {
+        QEConfig config = QE.blocker(Module.SCREENSHOTS) == null && working.enabled(Module.SCREENSHOTS) ? working : disabled(working);
+        return this.font.split(ScreenshotActions.sample(config), contentWidth - 28);
     }
 
     private static HudElement hudElement(Module module) {
@@ -205,7 +270,11 @@ public class SettingsScreen extends Screen {
             case LOOK_AT -> Items.SPYGLASS;
             case EFFECTS -> Items.BREWING_STAND;
             case EQUIPMENT -> Items.DIAMOND_CHESTPLATE;
+            case MOUNT -> Items.SADDLE;
             case STATS -> Items.CLOCK;
+            case SHULKER -> Items.SHULKER_BOX;
+            case NEW_ITEMS -> Items.NETHER_STAR;
+            case SCREENSHOTS -> Items.PAINTING;
             case DARK_SCREEN -> Items.OBSIDIAN;
             case KEYBOARD -> Items.OAK_SIGN;
         });
@@ -254,6 +323,26 @@ public class SettingsScreen extends Screen {
                 list.add(toggle("qualityessentials.option.stats.memory", c -> c.statsMemory, c -> c.statsMemory = !c.statsMemory));
                 list.add(toggle("qualityessentials.option.stats.entities", c -> c.statsEntities, c -> c.statsEntities = !c.statsEntities));
                 list.add(toggle("qualityessentials.option.stats.coords", c -> c.statsCoordinates, c -> c.statsCoordinates = !c.statsCoordinates));
+                list.add(toggle("qualityessentials.option.stats.time", c -> c.statsTime, c -> c.statsTime = !c.statsTime));
+                list.add(toggle("qualityessentials.option.stats.weather", c -> c.statsWeather, c -> c.statsWeather = !c.statsWeather));
+            }
+            case MOUNT -> {
+                list.add(toggle("qualityessentials.option.mount.food", c -> c.mountPlayerFood, c -> c.mountPlayerFood = !c.mountPlayerFood));
+                list.add(toggle("qualityessentials.option.mount.panel", c -> c.mountPanel, c -> c.mountPanel = !c.mountPanel));
+                list.add(toggle("qualityessentials.option.mount.current", c -> c.mountCurrentSpeed, c -> c.mountCurrentSpeed = !c.mountCurrentSpeed));
+            }
+            case SHULKER -> {
+                list.add(new Option("qualityessentials.option.shulker.style", null, null, List.of(
+                        new Choice("qualityessentials.option.shulker.grid", c -> c.shulkerCompact = false, c -> !c.shulkerCompact),
+                        new Choice("qualityessentials.option.shulker.summary", c -> c.shulkerCompact = true, c -> c.shulkerCompact))));
+                list.add(toggle("qualityessentials.option.shulker.hide_text", c -> c.shulkerHideText, c -> c.shulkerHideText = !c.shulkerHideText));
+            }
+            case NEW_ITEMS -> list.add(toggle("qualityessentials.option.new_items.animate", c -> c.newItemsAnimate,
+                    c -> c.newItemsAnimate = !c.newItemsAnimate));
+            case SCREENSHOTS -> {
+                list.add(toggle("qualityessentials.option.screenshots.open", c -> c.screenshotOpen, c -> c.screenshotOpen = !c.screenshotOpen));
+                list.add(toggle("qualityessentials.option.screenshots.folder", c -> c.screenshotFolder, c -> c.screenshotFolder = !c.screenshotFolder));
+                list.add(toggle("qualityessentials.option.screenshots.copy", c -> c.screenshotCopy, c -> c.screenshotCopy = !c.screenshotCopy));
             }
             case DARK_SCREEN -> {
                 List<Choice> presets = new ArrayList<>();
@@ -287,7 +376,7 @@ public class SettingsScreen extends Screen {
         int editorWidth = this.font.width(Component.translatable("qualityessentials.editor.open")) + 16;
         Ui.pill(graphics, this.font, summary, this.width - editorWidth - pillWidth - 14, 8, Palette.SURFACE, Palette.TEXT_DIM);
 
-        int sidebarBottom = TOP + Module.values().length * (ModuleCard.HEIGHT + CARD_GAP);
+        int sidebarBottom = TOP + Module.values().length * (cardHeight + CARD_GAP);
         graphics.fill(sidebarX + sidebarWidth + 5, TOP, sidebarX + sidebarWidth + 6, Math.max(sidebarBottom, this.height - 34), Palette.DIVIDER);
 
         Ui.scaledText(graphics, this.font, Component.translatable(selected.translationKey()), contentX, TOP, 1.5f, Palette.TEXT_BRIGHT, true);
@@ -368,21 +457,74 @@ public class SettingsScreen extends Screen {
                     break;
                 }
                 float opacity = working.layout(HudElement.STATS).opacity;
-                List<StatsHud.Stat> server = StatsHud.sample(working, false);
-                List<StatsHud.Stat> single = StatsHud.sample(working, true);
-                int[] first = StatsHud.size(this.font, server, working.statsCompact);
-                int x1 = contentX + 10;
-                int x2 = Math.max(x1 + first[0] + 16, contentX + contentWidth / 2 + 4);
-                graphics.text(this.font, Component.translatable("qualityessentials.settings.preview.server"), x1, top, Palette.TEXT_DISABLED, false);
-                graphics.text(this.font, Component.translatable("qualityessentials.settings.preview.single"), x2, top, Palette.TEXT_DISABLED, false);
+                StatsPreview stats = statsPreview();
+                statsSample(graphics, "qualityessentials.settings.preview.server", stats.server(), stats.x1(), top + stats.y1(), stats.scale(), opacity);
+                statsSample(graphics, "qualityessentials.settings.preview.single", stats.single(), stats.x2(), top + stats.y2(), stats.scale(), opacity);
+            }
+            case MOUNT -> {
+                if (!live) {
+                    disabledNote(graphics, cx, top + inner / 2 - 4);
+                    break;
+                }
+                MountHud.Info info = MountHud.preview(working);
+                int[] size = MountHud.size(this.font, info);
                 graphics.pose().pushMatrix();
-                graphics.pose().translate(x1, top + 11);
-                StatsHud.draw(graphics, this.font, server, working.statsCompact, opacity);
+                graphics.pose().translate(cx - size[0] / 2f, top + (inner - size[1]) / 2f);
+                MountHud.draw(graphics, this.font, info, working.layout(HudElement.MOUNT).opacity);
                 graphics.pose().popMatrix();
+            }
+            case SHULKER -> {
+                if (!live) {
+                    disabledNote(graphics, cx, top + inner / 2 - 4);
+                    break;
+                }
+                ShulkerTooltip sample = ShulkerPreview.sample(working);
+                Component name = Component.translatable("block.minecraft.light_blue_shulker_box");
+                int w = Math.max(ClientShulkerTooltip.width(sample), this.font.width(name)) + 8;
+                int h = 14 + ClientShulkerTooltip.height(sample) + 2;
+                float scale = Math.min(1f, (inner - 2) / (float) h);
                 graphics.pose().pushMatrix();
-                graphics.pose().translate(x2, top + 11);
-                StatsHud.draw(graphics, this.font, single, working.statsCompact, opacity);
+                graphics.pose().translate(cx - w * scale / 2f, top + (inner - h * scale) / 2f);
+                graphics.pose().scale(scale, scale);
+                Ui.panel(graphics, 0, 0, w, h, 0xF0100010, 0xFF2D0F5C);
+                graphics.text(this.font, name, 4, 4, Palette.TEXT_BRIGHT, true);
+                ClientShulkerTooltip.draw(graphics, this.font, sample, 4, 14);
                 graphics.pose().popMatrix();
+            }
+            case NEW_ITEMS -> {
+                if (!live) {
+                    disabledNote(graphics, cx, top + inner / 2 - 4);
+                    break;
+                }
+                ItemStack[] row = {new ItemStack(Items.DIAMOND_SWORD), new ItemStack(Items.COOKED_BEEF, 23), new ItemStack(Items.RAW_IRON, 9),
+                        new ItemStack(Items.TORCH, 41), ItemStack.EMPTY, new ItemStack(Items.EMERALD, 3), new ItemStack(Items.COBBLESTONE, 64),
+                        ItemStack.EMPTY, new ItemStack(Items.WATER_BUCKET)};
+                int x0 = cx - row.length * 18 / 2;
+                int y0 = top + (inner - 18) / 2 - 4;
+                float alpha = working.newItemsAnimate ? 0.7f + 0.3f * Ui.pulse(net.minecraft.util.Util.getMillis(), 1400f) : 1f;
+                for (int i = 0; i < row.length; i++) {
+                    int x = x0 + i * 18;
+                    graphics.fill(x, y0, x + 17, y0 + 17, Palette.SURFACE);
+                    graphics.outline(x, y0, 17, 17, Palette.BORDER);
+                    if (!row[i].isEmpty()) {
+                        graphics.item(row[i], x + 1, y0 + 1);
+                        graphics.itemDecorations(this.font, row[i], x + 1, y0 + 1);
+                    }
+                    if (i == 2 || i == 5) {
+                        NewItemTracker.star(graphics, x + 1, y0 + 1, alpha);
+                    }
+                }
+                Component note = Component.translatable("qualityessentials.settings.preview.new_items");
+                graphics.text(this.font, note, cx - this.font.width(note) / 2, y0 + 21, Palette.TEXT_DIM, false);
+            }
+            case SCREENSHOTS -> {
+                List<FormattedCharSequence> chat = screenshotLines();
+                int chatHeight = chat.size() * 10 + 2;
+                int y0 = top + (inner - chatHeight) / 2;
+                graphics.fill(contentX + 10, y0 - 1, contentX + contentWidth - 10, y0 + chatHeight, 0x80000000);
+                for (int i = 0; i < chat.size(); i++) {
+                    graphics.text(this.font, chat.get(i), contentX + 14, y0 + 1 + i * 10, 0xFFFFFFFF, true);
+                }
             }
             case DARK_SCREEN -> {
                 int color = live ? 0xFF000000 | working.darkPreset().rgb() : 0xFFEF323D;
@@ -403,8 +545,20 @@ public class SettingsScreen extends Screen {
         graphics.disableScissor();
     }
 
+    private void statsSample(GuiGraphicsExtractor graphics, String caption, List<StatsHud.Stat> stats, int x, int y, float scale, float opacity) {
+        graphics.text(this.font, Component.translatable(caption), x, y, Palette.TEXT_DISABLED, false);
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(x, y + 11);
+        graphics.pose().scale(scale, scale);
+        StatsHud.draw(graphics, this.font, stats, working.statsCompact, opacity);
+        graphics.pose().popMatrix();
+    }
+
     private static QEConfig disabled(QEConfig config) {
         QEConfig copy = config.copy();
+        copy.screenshotOpen = false;
+        copy.screenshotFolder = false;
+        copy.screenshotCopy = false;
         copy.foodSaturationOverlay = false;
         copy.foodHeldPreview = false;
         copy.foodTooltip = false;
@@ -473,6 +627,9 @@ public class SettingsScreen extends Screen {
     }
 
     private record RowLabel(String key, int y, boolean active, int height) {
+    }
+
+    private record StatsPreview(List<StatsHud.Stat> server, List<StatsHud.Stat> single, float scale, int x1, int y1, int x2, int y2, int height) {
     }
 
     private record Choice(String key, Consumer<QEConfig> apply, Predicate<QEConfig> selected) {
