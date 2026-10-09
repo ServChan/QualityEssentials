@@ -21,8 +21,11 @@ public final class ClientShulkerTooltip implements ClientTooltipComponent {
     }
 
     public static Component footer(ShulkerTooltip tooltip) {
-        return Component.translatable(tooltip.summary() ? "qualityessentials.shulker.footer.summary" : "qualityessentials.shulker.footer.grid",
-                tooltip.total());
+        if (tooltip.summary()) {
+            return Component.translatable("qualityessentials.shulker.footer.summary", tooltip.total(), tooltip.slots().size());
+        }
+        long used = tooltip.slots().stream().filter(stack -> !stack.isEmpty()).count();
+        return Component.translatable("qualityessentials.shulker.footer.grid", tooltip.total(), used, tooltip.slots().size());
     }
 
     public static int width(Font font, ShulkerTooltip tooltip) {

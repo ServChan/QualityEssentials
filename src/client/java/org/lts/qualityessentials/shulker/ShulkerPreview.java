@@ -1,8 +1,10 @@
 package org.lts.qualityessentials.shulker;
 
 import net.fabricmc.fabric.api.client.rendering.v1.ClientTooltipComponentCallback;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
@@ -33,8 +35,19 @@ public final class ShulkerPreview {
         return QE.active(Module.SHULKER) && QE.config().shulkerHideText && contents.nonEmptyItemCopyStream().findAny().isPresent();
     }
 
+    public static Component shiftHint(ItemContainerContents contents) {
+        if (!QE.active(Module.SHULKER) || Minecraft.getInstance().hasShiftDown()) {
+            return null;
+        }
+        int total = contents.nonEmptyItemCopyStream().mapToInt(ItemStack::getCount).sum();
+        if (total <= 0) {
+            return null;
+        }
+        return Component.translatable("qualityessentials.shulker.hold_shift", total).withStyle(ChatFormatting.GRAY);
+    }
+
     public static Optional<TooltipComponent> create(ItemStack stack) {
-        if (!QE.active(Module.SHULKER)) {
+        if (!QE.active(Module.SHULKER) || !Minecraft.getInstance().hasShiftDown()) {
             return Optional.empty();
         }
         ItemContainerContents contents = stack.get(DataComponents.CONTAINER);
@@ -48,8 +61,7 @@ public final class ShulkerPreview {
             DyeColor color = box.getColor();
             accent = color == null ? UNDYED : 0xFF000000 | color.getTextureDiffuseColor();
         }
-        boolean summary = QE.config().shulkerCompact != Minecraft.getInstance().hasShiftDown();
-        return Optional.of(build(contents.itemCopies().toList(), contents.size(), shulkerBox, accent, summary));
+        return Optional.of(build(contents.itemCopies().toList(), contents.size(), shulkerBox, accent, QE.config().shulkerCompact));
     }
 
     public static ShulkerTooltip sample(QEConfig config) {

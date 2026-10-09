@@ -490,6 +490,8 @@ public class SettingsScreen extends Screen {
                 graphics.text(this.font, name, 4, 4, Palette.TEXT_BRIGHT, true);
                 ClientShulkerTooltip.draw(graphics, this.font, sample, 4, 14);
                 graphics.pose().popMatrix();
+                Component caption = Component.translatable("qualityessentials.settings.preview.shulker");
+                graphics.text(this.font, caption, contentX + contentWidth - 6 - this.font.width(caption), previewY + 4, Palette.TEXT_DISABLED, false);
             }
             case NEW_ITEMS -> {
                 if (!live) {
