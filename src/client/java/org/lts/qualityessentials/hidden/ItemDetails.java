@@ -2,6 +2,8 @@ package org.lts.qualityessentials.hidden;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
@@ -18,6 +20,8 @@ import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.lts.qualityessentials.core.Module;
 import org.lts.qualityessentials.core.QE;
 import org.lts.qualityessentials.core.QEConfig;
@@ -112,6 +116,8 @@ public final class ItemDetails {
         if (stackSize != 64) {
             out.add(row("stack", Component.literal(String.valueOf(stackSize))));
         }
+        enchantmentRows(out, "enchantments", stack.get(DataComponents.ENCHANTMENTS));
+        enchantmentRows(out, "stored_enchantments", stack.get(DataComponents.STORED_ENCHANTMENTS));
         if (display.hideTooltip() || !display.hiddenComponents().isEmpty()) {
             List<String> hidden = new ArrayList<>();
             if (display.hideTooltip()) {
@@ -167,6 +173,17 @@ public final class ItemDetails {
         }
     }
 
+    private static void enchantmentRows(List<Component> out, String key, ItemEnchantments enchantments) {
+        if (enchantments == null || enchantments.isEmpty()) {
+            return;
+        }
+        out.add(label(key).append(Component.literal(" (" + enchantments.size() + ")").withStyle(ChatFormatting.DARK_GRAY)));
+        for (Object2IntMap.Entry<Holder<Enchantment>> entry : enchantments.entrySet()) {
+            out.add(Component.literal("  ").append(Enchantment.getFullname(entry.getKey(), entry.getIntValue()).copy()
+                    .withStyle(ChatFormatting.LIGHT_PURPLE)));
+        }
+    }
+
     private static void listRows(List<Component> out, String key, List<String> words) {
         List<String> lines = DetailsText.wrap(words, WRAP);
         out.add(label(key).append(Component.literal(" (" + words.size() + ")").withStyle(ChatFormatting.DARK_GRAY)));
@@ -217,6 +234,9 @@ public final class ItemDetails {
         lines.add(row("durability", Component.literal("1820 / 2031 (90%)")));
         lines.add(row("repair", Component.literal("7")));
         lines.add(row("rarity", Component.translatable(KEY + "rarity.epic").withStyle(ChatFormatting.LIGHT_PURPLE)));
+        lines.add(label("enchantments").append(Component.literal(" (2)").withStyle(ChatFormatting.DARK_GRAY)));
+        lines.add(Component.literal("  ").append(Component.translatable("enchantment.minecraft.efficiency").append(" V").withStyle(ChatFormatting.LIGHT_PURPLE)));
+        lines.add(Component.literal("  ").append(Component.translatable("enchantment.minecraft.mending").withStyle(ChatFormatting.LIGHT_PURPLE)));
         if (config.itemDetailsData) {
             lines.add(label("data"));
             lines.add(Component.literal("  PublicBukkitValues.server:id = jade_patron").withStyle(ChatFormatting.GRAY));
