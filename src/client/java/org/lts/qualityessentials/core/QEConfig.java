@@ -64,7 +64,9 @@ public final class QEConfig {
     public boolean shulkerHideText = true;
     public boolean shulkerCompact = false;
 
-    public boolean hiddenDetailsHint = true;
+    public boolean itemDetailsHint = true;
+    public boolean itemDetailsBlock = true;
+    public boolean itemDetailsData = true;
 
     public boolean newItemsAnimate = true;
 
@@ -189,7 +191,11 @@ public final class QEConfig {
                 shulkerHideText = defaults.shulkerHideText;
                 shulkerCompact = defaults.shulkerCompact;
             }
-            case HIDDEN_DETAILS -> hiddenDetailsHint = defaults.hiddenDetailsHint;
+            case ITEM_DETAILS -> {
+                itemDetailsHint = defaults.itemDetailsHint;
+                itemDetailsBlock = defaults.itemDetailsBlock;
+                itemDetailsData = defaults.itemDetailsData;
+            }
             case NEW_ITEMS -> newItemsAnimate = defaults.newItemsAnimate;
             case SCREENSHOTS -> {
                 screenshotOpen = defaults.screenshotOpen;

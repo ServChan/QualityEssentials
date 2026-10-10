@@ -7,7 +7,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipDisplay;
-import org.lts.qualityessentials.hidden.HiddenDetails;
+import org.lts.qualityessentials.hidden.ItemDetails;
 import org.lts.qualityessentials.shulker.ShulkerPreview;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -22,13 +22,13 @@ import java.util.Optional;
 public abstract class ItemStackMixin {
     @ModifyVariable(method = "getTooltipLines", at = @At("STORE"))
     private TooltipDisplay qualityessentials$revealHidden(TooltipDisplay display) {
-        return HiddenDetails.display(display);
+        return ItemDetails.display(display);
     }
 
     @Inject(method = "getTooltipLines", at = @At("RETURN"))
     private void qualityessentials$hiddenHint(Item.TooltipContext context, Player player, TooltipFlag flag,
             CallbackInfoReturnable<List<Component>> cir) {
-        HiddenDetails.finish((ItemStack) (Object) this, context, player, flag, cir.getReturnValue());
+        ItemDetails.finish((ItemStack) (Object) this, context, player, flag, cir.getReturnValue());
     }
 
     @Inject(method = "getTooltipImage", at = @At("RETURN"), cancellable = true)
