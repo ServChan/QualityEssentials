@@ -15,9 +15,12 @@ import org.lts.qualityessentials.chat.layout.LayoutFixer;
 import org.lts.qualityessentials.core.Module;
 import org.lts.qualityessentials.core.QE;
 import org.lts.qualityessentials.core.QEConfig;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -31,7 +34,11 @@ public final class ChatModule {
 
     public static KeyMapping flipKey;
     private static volatile LayoutFixer fixer;
+    private static final long SEND_DELAY_MILLIS = 1500L;
+    private static final Deque<String> OUTGOING = new ArrayDeque<>();
     private static Object lastLayout;
+    private static String whole;
+    private static long nextSendAt;
 
     private ChatModule() {
     }
@@ -90,11 +97,13 @@ public final class ChatModule {
 
     public static void tick(Minecraft minecraft) {
         ChatSessions.tick(minecraft);
+        ChatView.tick(minecraft);
+        sendQueued(minecraft);
         Window window = minecraft.getWindow();
         QEConfig config = config();
         boolean active = active();
         boolean resized = config.chatWidthSize() != QEConfig.ChatSize.NORMAL || config.chatHeightSize() != QEConfig.ChatSize.NORMAL;
-        Object layout = List.of(active, config.chatWidth, config.chatHeight, config.chatTimestamps, config.chatTimestampsHover, config.chatCollapse,
+        Object layout = List.of(active, config.chatWidth, config.chatHeight, config.chatTimestamps, config.chatTimestampsHover, config.chatCollapse, config.chatTabs,
                 resized ? window.getGuiScaledWidth() : 0, resized ? window.getGuiScaledHeight() : 0);
         if (!layout.equals(lastLayout)) {
             boolean first = lastLayout == null;
@@ -102,6 +111,65 @@ public final class ChatModule {
             if (!first && minecraft.level != null) {
                 minecraft.gui.hud.getChat().rescaleChat();
             }
+        }
+    }
+
+    public static String prepareSend(String message) {
+        whole = null;
+        if (message == null || !active() || !config().chatLongMessages) {
+            return message;
+        }
+        String text = message.strip();
+        if (!OUTGOING.isEmpty() && !text.isEmpty()) {
+            OUTGOING.addAll(MessageSplitter.split(text, MessageSplitter.LIMIT));
+            Minecraft.getInstance().gui.hud.getChat().addRecentChat(text);
+            return "";
+        }
+        if (text.length() <= MessageSplitter.LIMIT) {
+            return message;
+        }
+        List<String> parts = MessageSplitter.split(text, MessageSplitter.LIMIT);
+        if (parts.size() < 2) {
+            return message;
+        }
+        whole = text;
+        OUTGOING.addAll(parts.subList(1, parts.size()));
+        nextSendAt = System.currentTimeMillis() + SEND_DELAY_MILLIS;
+        return parts.getFirst();
+    }
+
+    public static String wholeMessage(String message) {
+        String full = whole;
+        whole = null;
+        return full != null ? full : message;
+    }
+
+    public static int queued() {
+        return OUTGOING.size();
+    }
+
+    private static void sendQueued(Minecraft minecraft) {
+        if (OUTGOING.isEmpty()) {
+            return;
+        }
+        ClientPacketListener connection = minecraft.getConnection();
+        if (connection == null || minecraft.player == null) {
+            OUTGOING.clear();
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now < nextSendAt) {
+            return;
+        }
+        String part = StringUtils.normalizeSpace(OUTGOING.poll().strip());
+        nextSendAt = now + SEND_DELAY_MILLIS;
+        if (part.isEmpty()) {
+            return;
+        }
+        if (part.startsWith("/")) {
+            connection.sendCommand(part.substring(1));
+        } else {
+            connection.sendChat(part);
         }
     }
 

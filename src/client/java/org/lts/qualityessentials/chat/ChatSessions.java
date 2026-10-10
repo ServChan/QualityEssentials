@@ -60,6 +60,10 @@ public final class ChatSessions {
     private ChatSessions() {
     }
 
+    static ExecutorService io() {
+        return IO;
+    }
+
     static void markDirty() {
         dirty = true;
     }

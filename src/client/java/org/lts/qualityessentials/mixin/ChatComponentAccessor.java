@@ -13,6 +13,12 @@ public interface ChatComponentAccessor {
     @Accessor("allMessages")
     List<GuiMessage> qualityessentials$allMessages();
 
+    @Accessor("trimmedMessages")
+    List<GuiMessage.Line> qualityessentials$trimmedMessages();
+
+    @Accessor("chatScrollbarPos")
+    int qualityessentials$chatScrollbarPos();
+
     @Invoker("refreshTrimmedMessages")
     void qualityessentials$refreshTrimmedMessages();
 }

@@ -17,7 +17,8 @@ import net.minecraft.world.item.Items;
 import net.minecraft.ChatFormatting;
 import org.lts.qualityessentials.chat.ChatDecor;
 import org.lts.qualityessentials.chat.ChatModule;
-import org.lts.qualityessentials.chat.ChatTimes;
+import org.lts.qualityessentials.chat.ChatOverlay;
+import org.lts.qualityessentials.chat.ChatView;
 import org.lts.qualityessentials.core.HudElement;
 import org.lts.qualityessentials.core.Module;
 import org.lts.qualityessentials.core.QE;
@@ -141,6 +142,13 @@ public class SettingsScreen extends Screen {
                     }));
             layoutButton.active = QE.blocker(selected) == null;
         }
+        if (selected == Module.CHAT) {
+            Component rules = Component.translatable("qualityessentials.settings.chat.rules");
+            int rulesWidth = this.font.width(rules) + 16;
+            FlatButton rulesButton = addRenderableWidget(new FlatButton(contentX + contentWidth - resetWidth - rulesWidth - 4, TOP, rulesWidth, 16, rules,
+                    FlatButton.Style.SECONDARY, ChatView::openRules));
+            rulesButton.active = QE.blocker(selected) == null;
+        }
         Component editor = Component.translatable("qualityessentials.editor.open");
         int editorWidth = this.font.width(editor) + 16;
         addRenderableWidget(new FlatButton(this.width - 8 - editorWidth, 5, editorWidth, 16, editor, FlatButton.Style.SECONDARY, () -> {
@@ -238,7 +246,7 @@ public class SettingsScreen extends Screen {
     private List<Component> chatPreview() {
         List<Component> lines = new ArrayList<>();
         QEConfig.ChatTimestamps style = working.chatTimestampStyle();
-        if (ChatTimes.onHover(working) && !overChatTimes()) {
+        if (ChatOverlay.onHover(working) && !overChatTimes()) {
             style = QEConfig.ChatTimestamps.OFF;
         }
         long now = System.currentTimeMillis();
@@ -256,7 +264,7 @@ public class SettingsScreen extends Screen {
 
     private boolean overChatTimes() {
         int left = contentX + 10;
-        return selected == Module.CHAT && mouseX >= left && mouseX <= left + 4 + ChatTimes.zoneWidth(this.font, working.chatTimestampStyle())
+        return selected == Module.CHAT && mouseX >= left && mouseX <= left + 4 + ChatOverlay.zoneWidth(this.font, working.chatTimestampStyle())
                 && mouseY >= previewY && mouseY <= previewY + previewHeight;
     }
 
@@ -400,6 +408,8 @@ public class SettingsScreen extends Screen {
             case CHAT -> {
                 list.add(toggle("qualityessentials.option.chat.fix_words", c -> c.chatFixWords, c -> c.chatFixWords = !c.chatFixWords));
                 list.add(toggle("qualityessentials.option.chat.fix_commands", c -> c.chatFixCommands, c -> c.chatFixCommands = !c.chatFixCommands));
+                list.add(toggle("qualityessentials.option.chat.tabs", c -> c.chatTabs, c -> c.chatTabs = !c.chatTabs));
+                list.add(toggle("qualityessentials.option.chat.long", c -> c.chatLongMessages, c -> c.chatLongMessages = !c.chatLongMessages));
                 list.add(toggle("qualityessentials.option.chat.restore", c -> c.chatRestore, c -> c.chatRestore = !c.chatRestore));
                 list.add(toggle("qualityessentials.option.chat.collapse", c -> c.chatCollapse, c -> c.chatCollapse = !c.chatCollapse));
                 list.add(toggle("qualityessentials.option.chat.timestamps_hover", c -> c.chatTimestampsHover,

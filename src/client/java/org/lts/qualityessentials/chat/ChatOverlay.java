@@ -4,18 +4,19 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.util.Mth;
 import org.lts.qualityessentials.core.QEConfig;
 
 import java.util.List;
 
-public final class ChatTimes {
+public final class ChatOverlay {
     private static final int BACKGROUND = 0xE0141414;
     private static final int TEXT = 0xFFB0B0B0;
     private static final int DIVIDER = 0xFF3A3A3A;
 
-    private ChatTimes() {
+    private ChatOverlay() {
     }
 
     public static boolean onHover(QEConfig config) {
@@ -28,7 +29,9 @@ public final class ChatTimes {
 
     public static void extract(GuiGraphicsExtractor graphics, Font font, int mouseX, int mouseY, List<GuiMessage.Line> lines, int scroll,
             int perPage, Minecraft minecraft) {
-        if (!ChatModule.active() || !onHover(ChatModule.config()) || lines.isEmpty()) {
+        GuiMessage flash = ChatView.flashing();
+        boolean times = onHover(ChatModule.config());
+        if (!ChatModule.active() || !times && flash == null || lines.isEmpty()) {
             return;
         }
         QEConfig.ChatTimestamps style = ChatModule.config().chatTimestampStyle();
@@ -49,13 +52,23 @@ public final class ChatTimes {
         int zone = zoneWidth(font, style);
         float localX = mouseX / scale - 4f;
         float localY = mouseY / scale;
-        if (localX < -4f || localX > zone || localY < chatTop || localY > chatBottom) {
+        boolean hovered = times && localX >= -4f && localX <= zone && localY >= chatTop && localY <= chatBottom;
+        if (!hovered && flash == null) {
             return;
         }
         graphics.pose().pushMatrix();
         graphics.pose().scale(scale, scale);
         graphics.pose().translate(4f, 0f);
-        for (int i = 0; i < count; i++) {
+        if (flash != null) {
+            int maxWidth = Mth.ceil(ChatComponent.getWidth(options.chatWidth().get()) / scale);
+            for (int i = 0; i < count; i++) {
+                if (lines.get(i + scroll).parent() == flash) {
+                    int entryBottom = chatBottom - i * entryHeight;
+                    graphics.fill(-4, entryBottom - entryHeight, maxWidth + 8, entryBottom, ChatView.flashColor());
+                }
+            }
+        }
+        for (int i = 0; hovered && i < count; i++) {
             int index = i + scroll;
             GuiMessage.Line line = lines.get(index);
             boolean firstLine = index + 1 >= lines.size() || lines.get(index + 1).parent() != line.parent();

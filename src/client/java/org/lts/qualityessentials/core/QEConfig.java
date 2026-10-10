@@ -79,6 +79,9 @@ public final class QEConfig {
     public boolean chatCollapse = true;
     public boolean chatFixWords = true;
     public boolean chatFixCommands = true;
+    public boolean chatTabs = true;
+    public String chatTab = "all";
+    public boolean chatLongMessages = true;
     public List<String> chatLayoutIgnore = new ArrayList<>();
 
     public Map<String, HudLayout> layouts = new LinkedHashMap<>();
@@ -200,6 +203,9 @@ public final class QEConfig {
                 chatCollapse = defaults.chatCollapse;
                 chatFixWords = defaults.chatFixWords;
                 chatFixCommands = defaults.chatFixCommands;
+                chatTabs = defaults.chatTabs;
+                chatTab = defaults.chatTab;
+                chatLongMessages = defaults.chatLongMessages;
             }
         }
         setEnabled(module, true);
@@ -225,6 +231,9 @@ public final class QEConfig {
         chatWidth = ChatSize.parse(chatWidth).name();
         chatHeight = ChatSize.parse(chatHeight).name();
         chatTimestamps = ChatTimestamps.parse(chatTimestamps).name();
+        if (chatTab == null || chatTab.isBlank()) {
+            chatTab = "all";
+        }
         List<String> ignore = new ArrayList<>();
         if (chatLayoutIgnore != null) {
             for (String word : chatLayoutIgnore) {

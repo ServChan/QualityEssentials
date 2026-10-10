@@ -15,7 +15,8 @@
     "ScreenshotMixin",
     "ChatComponentMixin",
     "ChatComponentAccessor",
-    "ChatScreenMixin"
+    "ChatScreenMixin",
+    "ChatScreenAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

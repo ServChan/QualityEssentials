@@ -1,0 +1,112 @@
+package org.lts.qualityessentials.chat.tabs;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
+public final class ChatRules {
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+
+    private ChatRules() {
+    }
+
+    public static FileData defaults() {
+        FileData data = new FileData();
+        data.groups.add(group("joins",
+                "(?iu)(зашёл|зашел|зашла|вошёл|вошел|вошла)\\s+(на|в)\\s+(сервер|игру)",
+                "(?iu)(вышел|вышла|покинул|покинула)\\s+(с|из)\\s+(сервера|игры)",
+                "(?iu)присоединил(ся|ась)\\s+(к\\s+(серверу|игре)|с\\s+клиента)",
+                "(?i)\\b(joined|left) the (game|server)\\b"));
+        data.groups.add(group("anticheat",
+                "(?i)^\\W*[\\[(]\\s*(vulcan|grim|grimac|matrix|spartan|themis|polar|intave|verus|karhu)\\s*[\\])]"));
+        data.groups.add(group("private",
+                "(?iu)(->|→|»)\\s*(вы|вам|мне|я|me|you)(\\W|$)",
+                "(?iu)(^|\\W)(вы|я|me|you)\\s*(->|→|»)",
+                "(?iu)(шепчет|whispers)",
+                "(?iu)^\\W*\\[(лс|пм|pm|msg|dm|whisper)\\]"));
+        data.groups.add(group("noise",
+                "(?iu)поблизости нет никого",
+                "(?i)(no ?one|nobody) (is )?(near|around)"));
+        data.tabs.add(tab("all", List.of(TabRules.EVERYTHING), List.of()));
+        data.tabs.add(tab("talk", List.of(TabRules.EVERYTHING), List.of("joins", "anticheat", "noise")));
+        data.tabs.add(tab("private", List.of("private"), List.of()));
+        data.tabs.add(tab("joins", List.of("joins"), List.of()));
+        data.tabs.add(tab("anticheat", List.of("anticheat"), List.of()));
+        return data;
+    }
+
+    public static TabRules compile(FileData data, Consumer<String> problem) {
+        List<TabRules.Group> groups = new ArrayList<>();
+        List<TabRules.Tab> tabs = new ArrayList<>();
+        if (data != null && data.groups != null) {
+            for (GroupData group : data.groups) {
+                if (group != null) {
+                    groups.add(new TabRules.Group(group.id, group.patterns));
+                }
+            }
+        }
+        if (data != null && data.tabs != null) {
+            for (TabData tab : data.tabs) {
+                if (tab != null) {
+                    tabs.add(new TabRules.Tab(tab.id, tab.name, tab.show, tab.hide));
+                }
+            }
+        }
+        return new TabRules(groups, tabs, problem);
+    }
+
+    public static FileData read(Path file) throws IOException {
+        if (!Files.isRegularFile(file)) {
+            FileData defaults = defaults();
+            write(file, defaults);
+            return defaults;
+        }
+        FileData data = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), FileData.class);
+        return data == null ? defaults() : data;
+    }
+
+    public static void write(Path file, FileData data) throws IOException {
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, GSON.toJson(data), StandardCharsets.UTF_8);
+    }
+
+    private static GroupData group(String id, String... patterns) {
+        GroupData group = new GroupData();
+        group.id = id;
+        group.patterns = List.of(patterns);
+        return group;
+    }
+
+    private static TabData tab(String id, List<String> show, List<String> hide) {
+        TabData tab = new TabData();
+        tab.id = id;
+        tab.show = show;
+        tab.hide = hide;
+        return tab;
+    }
+
+    public static final class FileData {
+        public int version = 1;
+        public List<GroupData> groups = new ArrayList<>();
+        public List<TabData> tabs = new ArrayList<>();
+    }
+
+    public static final class GroupData {
+        public String id;
+        public List<String> patterns = new ArrayList<>();
+    }
+
+    public static final class TabData {
+        public String id;
+        public String name;
+        public List<String> show = new ArrayList<>();
+        public List<String> hide = new ArrayList<>();
+    }
+}

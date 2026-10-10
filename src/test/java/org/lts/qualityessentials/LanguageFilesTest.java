@@ -3,6 +3,7 @@ package org.lts.qualityessentials;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.junit.jupiter.api.Test;
+import org.lts.qualityessentials.chat.tabs.ChatRules;
 import org.lts.qualityessentials.core.Module;
 import org.lts.qualityessentials.core.QEConfig;
 import org.lts.qualityessentials.keyboard.layout.KeyCap;
@@ -92,6 +93,9 @@ class LanguageFilesTest {
         }
         for (QEConfig.ChatSize size : QEConfig.ChatSize.values()) {
             expected.add("qualityessentials.chat.size." + size.name().toLowerCase(Locale.ROOT));
+        }
+        for (ChatRules.TabData tab : ChatRules.defaults().tabs) {
+            expected.add("qualityessentials.chat.tab." + tab.id);
         }
         for (QEConfig.ChatTimestamps style : QEConfig.ChatTimestamps.values()) {
             expected.add("qualityessentials.chat.time." + style.name().toLowerCase(Locale.ROOT));
