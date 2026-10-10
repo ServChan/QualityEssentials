@@ -26,6 +26,7 @@ import org.lts.qualityessentials.core.QEConfig;
 import org.lts.qualityessentials.effects.EffectTimerHud;
 import org.lts.qualityessentials.equipment.EquipmentHud;
 import org.lts.qualityessentials.food.FoodHud;
+import org.lts.qualityessentials.hidden.HiddenDetails;
 import org.lts.qualityessentials.keyboard.KeyboardModule;
 import org.lts.qualityessentials.lookat.LookAtHud;
 import org.lts.qualityessentials.mount.MountHud;
@@ -212,6 +213,7 @@ public class SettingsScreen extends Screen {
             case STATS -> statsPreview().height() + 22;
             case MOUNT -> MountHud.size(this.font, MountHud.preview(working))[1] + 26;
             case SHULKER -> ClientShulkerTooltip.height(ShulkerPreview.sample(working)) + 36;
+            case HIDDEN_DETAILS -> HiddenDetails.preview(true).size() * 10 + 34;
             case SCREENSHOTS -> screenshotLines().size() * 10 + 30;
             case CHAT -> chatPreview().size() * 10 + 30;
             default -> compact ? 46 : 58;
@@ -333,6 +335,7 @@ public class SettingsScreen extends Screen {
             case MOUNT -> Items.SADDLE;
             case STATS -> Items.CLOCK;
             case SHULKER -> Items.SHULKER_BOX;
+            case HIDDEN_DETAILS -> Items.ENCHANTED_BOOK;
             case NEW_ITEMS -> Items.NETHER_STAR;
             case SCREENSHOTS -> Items.PAINTING;
             case CHAT -> Items.WRITABLE_BOOK;
@@ -398,6 +401,8 @@ public class SettingsScreen extends Screen {
                         new Choice("qualityessentials.option.shulker.summary", c -> c.shulkerCompact = true, c -> c.shulkerCompact))));
                 list.add(toggle("qualityessentials.option.shulker.hide_text", c -> c.shulkerHideText, c -> c.shulkerHideText = !c.shulkerHideText));
             }
+            case HIDDEN_DETAILS -> list.add(toggle("qualityessentials.option.hidden_details.hint", c -> c.hiddenDetailsHint,
+                    c -> c.hiddenDetailsHint = !c.hiddenDetailsHint));
             case NEW_ITEMS -> list.add(toggle("qualityessentials.option.new_items.animate", c -> c.newItemsAnimate,
                     c -> c.newItemsAnimate = !c.newItemsAnimate));
             case SCREENSHOTS -> {
@@ -584,6 +589,31 @@ public class SettingsScreen extends Screen {
                 ClientShulkerTooltip.draw(graphics, this.font, sample, 4, 14);
                 graphics.pose().popMatrix();
                 Component caption = Component.translatable("qualityessentials.settings.preview.shulker");
+                graphics.text(this.font, caption, contentX + contentWidth - 6 - this.font.width(caption), previewY + 4, Palette.TEXT_DISABLED, false);
+            }
+            case HIDDEN_DETAILS -> {
+                if (!live) {
+                    disabledNote(graphics, cx, top + inner / 2 - 4);
+                    break;
+                }
+                boolean shift = this.minecraft.hasShiftDown();
+                List<Component> tip = new ArrayList<>(HiddenDetails.preview(shift));
+                if (!shift && !working.hiddenDetailsHint) {
+                    tip.removeLast();
+                }
+                int w = 0;
+                for (Component line : tip) {
+                    w = Math.max(w, this.font.width(line));
+                }
+                w += 8;
+                int h = tip.size() * 10 + 6;
+                int x0 = cx - w / 2;
+                int y0 = top + (inner - h) / 2;
+                Ui.panel(graphics, x0, y0, w, h, 0xF0100010, 0xFF2D0F5C);
+                for (int i = 0; i < tip.size(); i++) {
+                    graphics.text(this.font, tip.get(i), x0 + 4, y0 + 4 + i * 10, Palette.TEXT_BRIGHT, true);
+                }
+                Component caption = Component.translatable(shift ? "qualityessentials.settings.preview.hidden.release" : "qualityessentials.settings.preview.hidden.press");
                 graphics.text(this.font, caption, contentX + contentWidth - 6 - this.font.width(caption), previewY + 4, Palette.TEXT_DISABLED, false);
             }
             case NEW_ITEMS -> {

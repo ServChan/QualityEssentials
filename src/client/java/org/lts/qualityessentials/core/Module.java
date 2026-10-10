@@ -12,6 +12,7 @@ public enum Module {
     MOUNT("Better Mount HUD", "bettermounthud", "better-mount-hud", "better_mount_hud"),
     STATS("FPS Display", "fpsdisplay", "fps-display", "fps_display"),
     SHULKER("Shulker Box Tooltip", "shulkerboxtooltip", "shulker-box-tooltip", "shulker_box_tooltip"),
+    HIDDEN_DETAILS(null),
     NEW_ITEMS("Item Highlighter", "itemhighlighter", "item-highlighter", "item_highlighter"),
     SCREENSHOTS(null),
     CHAT("Chat Patches", "chatpatches"),
