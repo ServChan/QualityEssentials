@@ -17,6 +17,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.ChatFormatting;
 import org.lts.qualityessentials.chat.ChatDecor;
 import org.lts.qualityessentials.chat.ChatModule;
+import org.lts.qualityessentials.chat.ChatTimes;
 import org.lts.qualityessentials.core.HudElement;
 import org.lts.qualityessentials.core.Module;
 import org.lts.qualityessentials.core.QE;
@@ -59,6 +60,8 @@ public class SettingsScreen extends Screen {
     private int previewHeight;
     private int cardHeight = ModuleCard.HEIGHT;
     private final List<RowLabel> rowLabels = new ArrayList<>();
+    private int mouseX;
+    private int mouseY;
 
     public SettingsScreen(Screen parent) {
         super(Component.translatable("qualityessentials.settings.title"));
@@ -235,6 +238,9 @@ public class SettingsScreen extends Screen {
     private List<Component> chatPreview() {
         List<Component> lines = new ArrayList<>();
         QEConfig.ChatTimestamps style = working.chatTimestampStyle();
+        if (ChatTimes.onHover(working) && !overChatTimes()) {
+            style = QEConfig.ChatTimestamps.OFF;
+        }
         long now = System.currentTimeMillis();
         lines.add(chatLine(style, now - 90_000L, Component.literal("<Steve> ").append(Component.translatable("qualityessentials.settings.preview.chat.hello")), 1));
         lines.add(chatLine(style, now - 30_000L, Component.translatable("qualityessentials.settings.preview.chat.restart").withStyle(ChatFormatting.YELLOW),
@@ -246,6 +252,12 @@ public class SettingsScreen extends Screen {
             lines.add(fixLine("/ызфцт", "/spawn"));
         }
         return lines;
+    }
+
+    private boolean overChatTimes() {
+        int left = contentX + 10;
+        return selected == Module.CHAT && mouseX >= left && mouseX <= left + 4 + ChatTimes.zoneWidth(this.font, working.chatTimestampStyle())
+                && mouseY >= previewY && mouseY <= previewY + previewHeight;
     }
 
     private static Component chatLine(QEConfig.ChatTimestamps style, long time, Component text, int count) {
@@ -390,6 +402,8 @@ public class SettingsScreen extends Screen {
                 list.add(toggle("qualityessentials.option.chat.fix_commands", c -> c.chatFixCommands, c -> c.chatFixCommands = !c.chatFixCommands));
                 list.add(toggle("qualityessentials.option.chat.restore", c -> c.chatRestore, c -> c.chatRestore = !c.chatRestore));
                 list.add(toggle("qualityessentials.option.chat.collapse", c -> c.chatCollapse, c -> c.chatCollapse = !c.chatCollapse));
+                list.add(toggle("qualityessentials.option.chat.timestamps_hover", c -> c.chatTimestampsHover,
+                        c -> c.chatTimestampsHover = !c.chatTimestampsHover));
                 List<Choice> sizes = new ArrayList<>();
                 for (int size : QEConfig.HISTORY_SIZES) {
                     sizes.add(new Choice("qualityessentials.chat.history." + size, c -> c.chatHistorySize = size, c -> c.chatHistorySize == size));
@@ -431,6 +445,8 @@ public class SettingsScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float tickDelta) {
+        this.mouseX = mouseX;
+        this.mouseY = mouseY;
         graphics.fill(0, 0, this.width, this.height, Palette.BACKGROUND);
         graphics.fill(0, 0, this.width, HEADER_HEIGHT, Palette.HEADER);
         graphics.fill(0, HEADER_HEIGHT - 1, this.width, HEADER_HEIGHT, Palette.BORDER);

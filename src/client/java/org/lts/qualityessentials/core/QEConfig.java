@@ -75,6 +75,7 @@ public final class QEConfig {
     public String chatWidth = ChatSize.NORMAL.name();
     public String chatHeight = ChatSize.NORMAL.name();
     public String chatTimestamps = ChatTimestamps.OFF.name();
+    public boolean chatTimestampsHover = true;
     public boolean chatCollapse = true;
     public boolean chatFixWords = true;
     public boolean chatFixCommands = true;
@@ -195,6 +196,7 @@ public final class QEConfig {
                 chatWidth = defaults.chatWidth;
                 chatHeight = defaults.chatHeight;
                 chatTimestamps = defaults.chatTimestamps;
+                chatTimestampsHover = defaults.chatTimestampsHover;
                 chatCollapse = defaults.chatCollapse;
                 chatFixWords = defaults.chatFixWords;
                 chatFixCommands = defaults.chatFixCommands;

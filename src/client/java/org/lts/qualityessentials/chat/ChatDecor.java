@@ -50,6 +50,11 @@ public final class ChatDecor {
         return meta != null && meta.kind == Kind.SEPARATOR;
     }
 
+    static Long knownTime(GuiMessage message) {
+        Meta meta = META.get(message);
+        return meta == null || meta.kind == Kind.SEPARATOR ? null : meta.time;
+    }
+
     static long time(GuiMessage message) {
         Meta meta = META.get(message);
         return meta == null ? System.currentTimeMillis() : meta.time;
@@ -63,8 +68,9 @@ public final class ChatDecor {
         if (meta == null || meta.kind == Kind.SEPARATOR) {
             return message;
         }
-        QEConfig.ChatTimestamps style = ChatModule.config().chatTimestampStyle();
-        boolean stamp = style != QEConfig.ChatTimestamps.OFF;
+        QEConfig config = ChatModule.config();
+        QEConfig.ChatTimestamps style = config.chatTimestampStyle();
+        boolean stamp = style != QEConfig.ChatTimestamps.OFF && !config.chatTimestampsHover;
         if (!stamp && meta.count < 2) {
             return message;
         }

@@ -152,6 +152,8 @@
   "qualityessentials.option.chat.restore": "Restore chat on rejoin",
   "qualityessentials.option.chat.restore.hint": "Up to 1000 messages, separately for each server and world",
   "qualityessentials.option.chat.timestamps": "Timestamps",
+  "qualityessentials.option.chat.timestamps_hover": "Time on hover only",
+  "qualityessentials.option.chat.timestamps_hover.hint": "Point at the left edge of the open chat to see when messages came",
   "qualityessentials.option.chat.width": "Window width",
   "qualityessentials.option.dark.color": "Background color",
   "qualityessentials.option.effects.level": "Effect level",

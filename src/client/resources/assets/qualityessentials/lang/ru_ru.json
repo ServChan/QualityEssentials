@@ -152,6 +152,8 @@
   "qualityessentials.option.chat.restore": "Возвращать чат после перезахода",
   "qualityessentials.option.chat.restore.hint": "До 1000 сообщений, отдельно для каждого сервера и мира",
   "qualityessentials.option.chat.timestamps": "Время сообщений",
+  "qualityessentials.option.chat.timestamps_hover": "Время только при наведении",
+  "qualityessentials.option.chat.timestamps_hover.hint": "Наведите курсор на левый край открытого чата, чтобы увидеть время",
   "qualityessentials.option.chat.width": "Ширина окна",
   "qualityessentials.option.dark.color": "Цвет фона",
   "qualityessentials.option.effects.level": "Уровень эффекта",

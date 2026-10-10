@@ -94,7 +94,7 @@ public final class ChatModule {
         QEConfig config = config();
         boolean active = active();
         boolean resized = config.chatWidthSize() != QEConfig.ChatSize.NORMAL || config.chatHeightSize() != QEConfig.ChatSize.NORMAL;
-        Object layout = List.of(active, config.chatWidth, config.chatHeight, config.chatTimestamps, config.chatCollapse,
+        Object layout = List.of(active, config.chatWidth, config.chatHeight, config.chatTimestamps, config.chatTimestampsHover, config.chatCollapse,
                 resized ? window.getGuiScaledWidth() : 0, resized ? window.getGuiScaledHeight() : 0);
         if (!layout.equals(lastLayout)) {
             boolean first = lastLayout == null;

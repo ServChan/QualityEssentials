@@ -3,18 +3,22 @@ package org.lts.qualityessentials.mixin;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.util.FormattedCharSequence;
 import org.lts.qualityessentials.chat.ChatDecor;
 import org.lts.qualityessentials.chat.ChatModule;
+import org.lts.qualityessentials.chat.ChatTimes;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
@@ -28,6 +32,16 @@ public abstract class ChatComponentMixin {
     @Shadow
     @Final
     private List<GuiMessage.Line> trimmedMessages;
+
+    @Shadow
+    @Final
+    private Minecraft minecraft;
+
+    @Shadow
+    private int chatScrollbarPos;
+
+    @Shadow
+    public abstract int getLinesPerPage();
 
     @ModifyExpressionValue(method = {"addMessageToDisplayQueue", "addMessageToQueue", "addRecentChat"},
             at = @At(value = "CONSTANT", args = "intValue=100"))
@@ -46,6 +60,15 @@ public abstract class ChatComponentMixin {
     private List<FormattedCharSequence> qualityessentials$decorate(GuiMessage message, Font font, int width,
             Operation<List<FormattedCharSequence>> original) {
         return original.call(ChatDecor.decorate(message), font, width);
+    }
+
+    @Inject(method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/gui/Font;IIILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;Z)V",
+            at = @At("TAIL"))
+    private void qualityessentials$hoverTimes(GuiGraphicsExtractor graphics, Font font, int ticks, int mouseX, int mouseY,
+            ChatComponent.DisplayMode displayMode, boolean changeCursorOnInsertions, CallbackInfo ci) {
+        if (displayMode.foreground) {
+            ChatTimes.extract(graphics, font, mouseX, mouseY, trimmedMessages, chatScrollbarPos, getLinesPerPage(), minecraft);
+        }
     }
 
     @Inject(method = "getWidth(D)I", at = @At("RETURN"), cancellable = true)

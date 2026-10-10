@@ -152,6 +152,8 @@
   "qualityessentials.option.chat.restore": "Recuperar el chat al reconectar",
   "qualityessentials.option.chat.restore.hint": "Hasta 1000 mensajes, por separado para cada servidor y mundo",
   "qualityessentials.option.chat.timestamps": "Hora de los mensajes",
+  "qualityessentials.option.chat.timestamps_hover": "Hora solo al pasar el cursor",
+  "qualityessentials.option.chat.timestamps_hover.hint": "Lleva el cursor al borde izquierdo del chat abierto para ver la hora",
   "qualityessentials.option.chat.width": "Ancho de la ventana",
   "qualityessentials.option.dark.color": "Color de fondo",
   "qualityessentials.option.effects.level": "Nivel del efecto",
