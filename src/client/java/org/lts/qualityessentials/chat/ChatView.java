@@ -2,6 +2,7 @@ package org.lts.qualityessentials.chat;
 
 import com.google.common.collect.MapMaker;
 import com.mojang.blaze3d.Blaze3D;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -361,7 +362,7 @@ public final class ChatView {
     }
 
     public static boolean mouseClicked(MouseButtonEvent event, int width, int height, EditBox input) {
-        if (!ChatModule.active() || event.button() != 0) {
+        if (!ChatModule.active() || event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
         Minecraft minecraft = Minecraft.getInstance();

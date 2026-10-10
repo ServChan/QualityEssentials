@@ -1,5 +1,6 @@
 package org.lts.qualityessentials.chat.tabs;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -9,6 +10,8 @@ import java.util.regex.PatternSyntaxException;
 public final class TabRules {
     public static final String EVERYTHING = "*";
     private static final int MAX_GROUPS = 63;
+    private static final String FANCY = "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡʏᴢ❪❨⦅❫❩⦆【〔〖❲】〕〗❳⟨⟩";
+    private static final String PLAIN = "abcdefghijklmnopqrstuvwyz((()))[[[[]]]]<>";
 
     private final List<String> groupIds = new ArrayList<>();
     private final List<List<Pattern>> patterns = new ArrayList<>();
@@ -66,7 +69,19 @@ public final class TabRules {
         return mask;
     }
 
-    public long classify(String text) {
+    public static String normalize(String text) {
+        String folded = Normalizer.normalize(text, Normalizer.Form.NFKC);
+        StringBuilder out = new StringBuilder(folded.length());
+        for (int i = 0; i < folded.length(); i++) {
+            char c = folded.charAt(i);
+            int index = FANCY.indexOf(c);
+            out.append(index >= 0 ? PLAIN.charAt(index) : c);
+        }
+        return out.toString();
+    }
+
+    public long classify(String raw) {
+        String text = normalize(raw);
         long mask = 0L;
         for (int i = 0; i < patterns.size(); i++) {
             for (Pattern pattern : patterns.get(i)) {

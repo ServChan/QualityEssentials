@@ -10,6 +10,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import org.lts.qualityessentials.chat.ChatModule;
+import org.lts.qualityessentials.chat.ChatOverlay;
 import org.lts.qualityessentials.chat.ChatView;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -31,6 +32,7 @@ public abstract class ChatScreenMixin {
 
     @Inject(method = "removed", at = @At("HEAD"))
     private void qualityessentials$close(CallbackInfo ci) {
+        ChatOverlay.end();
         if (input != null) {
             ChatView.onClose(input);
         }

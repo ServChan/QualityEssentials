@@ -3,6 +3,7 @@ package org.lts.qualityessentials.mixin;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -14,6 +15,7 @@ import org.lts.qualityessentials.chat.ChatDecor;
 import org.lts.qualityessentials.chat.ChatModule;
 import org.lts.qualityessentials.chat.ChatOverlay;
 import org.lts.qualityessentials.chat.ChatView;
+import org.joml.Matrix3x2f;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -24,6 +26,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 @Mixin(ChatComponent.class)
 public abstract class ChatComponentMixin {
@@ -72,13 +75,25 @@ public abstract class ChatComponentMixin {
         return original.call(ChatDecor.decorate(message), font, width);
     }
 
-    @Inject(method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/gui/Font;IIILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;Z)V",
-            at = @At("TAIL"))
-    private void qualityessentials$hoverTimes(GuiGraphicsExtractor graphics, Font font, int ticks, int mouseX, int mouseY,
+    @Inject(method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/gui/Font;IIILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;Z)V", at = @At("HEAD"))
+    private void qualityessentials$beginFrame(GuiGraphicsExtractor graphics, Font font, int ticks, int mouseX, int mouseY,
             ChatComponent.DisplayMode displayMode, boolean changeCursorOnInsertions, CallbackInfo ci) {
-        if (displayMode.foreground) {
-            ChatOverlay.extract(graphics, font, mouseX, mouseY, trimmedMessages, chatScrollbarPos, getLinesPerPage(), minecraft);
-        }
+        ChatOverlay.begin(graphics, font, mouseX, mouseY, displayMode, trimmedMessages, chatScrollbarPos, getLinesPerPage(), minecraft);
+    }
+
+    @Inject(method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/gui/Font;IIILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;Z)V", at = @At("TAIL"))
+    private void qualityessentials$times(GuiGraphicsExtractor graphics, Font font, int ticks, int mouseX, int mouseY,
+            ChatComponent.DisplayMode displayMode, boolean changeCursorOnInsertions, CallbackInfo ci) {
+        ChatOverlay.extract(graphics, font, displayMode, trimmedMessages, chatScrollbarPos, getLinesPerPage(), minecraft);
+    }
+
+    @WrapOperation(method = "extractRenderState(Lnet/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess;IILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;)V",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess;updatePose(Ljava/util/function/Consumer;)V"))
+    private void qualityessentials$slide(ChatComponent.ChatGraphicsAccess access, Consumer<Matrix3x2f> updater,
+            Operation<Void> original, @Local(argsOnly = true) ChatComponent.DisplayMode displayMode) {
+        int shift = ChatOverlay.shift(displayMode);
+        original.call(access, shift == 0 ? updater : updater.andThen(pose -> pose.translate(shift, 0f)));
     }
 
     @Inject(method = "getWidth(D)I", at = @At("RETURN"), cancellable = true)

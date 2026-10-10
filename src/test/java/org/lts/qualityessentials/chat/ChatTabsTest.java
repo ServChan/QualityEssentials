@@ -43,8 +43,8 @@ class ChatTabsTest {
         assertTrue(in("joins", join));
         assertTrue(in("joins", leave));
         assertTrue(in("joins", client));
-        assertTrue(in("anticheat", client));
-        assertTrue(in("anticheat", flag));
+        assertTrue(in("staff", client));
+        assertTrue(in("staff", flag));
         assertFalse(in("joins", flag));
         assertTrue(in("private", whisper));
 
@@ -55,7 +55,22 @@ class ChatTabsTest {
             assertTrue(in("all", line), line);
         }
         assertFalse(in("private", talk));
-        assertFalse(in("anticheat", "Steve: vulcan опять ругается"));
+        assertFalse(in("staff", "Steve: vulcan опять ругается"));
+    }
+
+    @Test
+    void realServerFormattingIsUnderstood() {
+        String fancy = "\u276a\u1d20\u1d1c\u029f\u1d04\u1d00\u0274\u276b [vilochka head]vilochka провалил Speed (Type C) [1/6]";
+        assertTrue(in("staff", fancy));
+        assertFalse(in("talk", fancy));
+        assertTrue(in("staff", "[Мат] [paincore head]paincore: майонезный"));
+        assertFalse(in("talk", "[Мат] [paincore head]paincore: майонезный"));
+        assertTrue(in("staff", "[Защита] Вы теперь в режиме модератора!"));
+        assertTrue(in("joins", "[-] Отслеживаемый игрок \ua45d m1stresss вышел с сервера"));
+        assertFalse(in("talk", "Авто-очистка сущностей: 34"));
+        assertTrue(in("talk", "[X] \ua418 | [skyimpossible head]\ua41b skyimpossible: а че в чат пишешь"));
+        assertTrue(in("talk", "\ua429 [deksus head]deksus загрызен Зомби."));
+        assertEquals("(vulcan)", TabRules.normalize("\u276a\u1d20\u1d1c\u029f\u1d04\u1d00\u0274\u276b"));
     }
 
     @Test

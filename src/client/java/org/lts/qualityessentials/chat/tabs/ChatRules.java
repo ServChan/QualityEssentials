@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public final class ChatRules {
+    public static final int VERSION = 2;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
     private ChatRules() {
@@ -23,9 +24,12 @@ public final class ChatRules {
                 "(?iu)(зашёл|зашел|зашла|вошёл|вошел|вошла)\\s+(на|в)\\s+(сервер|игру)",
                 "(?iu)(вышел|вышла|покинул|покинула)\\s+(с|из)\\s+(сервера|игры)",
                 "(?iu)присоединил(ся|ась)\\s+(к\\s+(серверу|игре)|с\\s+клиента)",
+                "(?iu)^\\W*\\[-\\]\\s*отслеживаемый игрок",
                 "(?i)\\b(joined|left) the (game|server)\\b"));
         data.groups.add(group("anticheat",
                 "(?i)^\\W*[\\[(]\\s*(vulcan|grim|grimac|matrix|spartan|themis|polar|intave|verus|karhu)\\s*[\\])]"));
+        data.groups.add(group("moderation",
+                "(?iu)^\\W*\\[(мат|защита|спам|реклама|mute|ban|warn)\\]"));
         data.groups.add(group("private",
                 "(?iu)(->|→|»)\\s*(вы|вам|мне|я|me|you)(\\W|$)",
                 "(?iu)(^|\\W)(вы|я|me|you)\\s*(->|→|»)",
@@ -33,12 +37,13 @@ public final class ChatRules {
                 "(?iu)^\\W*\\[(лс|пм|pm|msg|dm|whisper)\\]"));
         data.groups.add(group("noise",
                 "(?iu)поблизости нет никого",
-                "(?i)(no ?one|nobody) (is )?(near|around)"));
+                "(?i)(no ?one|nobody) (is )?(near|around)",
+                "(?iu)^\\W*авто-очистка сущностей"));
         data.tabs.add(tab("all", List.of(TabRules.EVERYTHING), List.of()));
-        data.tabs.add(tab("talk", List.of(TabRules.EVERYTHING), List.of("joins", "anticheat", "noise")));
+        data.tabs.add(tab("talk", List.of(TabRules.EVERYTHING), List.of("joins", "anticheat", "moderation", "noise")));
         data.tabs.add(tab("private", List.of("private"), List.of()));
         data.tabs.add(tab("joins", List.of("joins"), List.of()));
-        data.tabs.add(tab("anticheat", List.of("anticheat"), List.of()));
+        data.tabs.add(tab("staff", List.of("anticheat", "moderation"), List.of()));
         return data;
     }
 
@@ -68,8 +73,16 @@ public final class ChatRules {
             write(file, defaults);
             return defaults;
         }
-        FileData data = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), FileData.class);
-        return data == null ? defaults() : data;
+        String json = Files.readString(file, StandardCharsets.UTF_8);
+        FileData data = GSON.fromJson(json, FileData.class);
+        if (data == null || data.version < VERSION) {
+            int old = data == null ? 0 : data.version;
+            Files.writeString(file.resolveSibling(file.getFileName() + ".v" + old + ".bak"), json, StandardCharsets.UTF_8);
+            FileData defaults = defaults();
+            write(file, defaults);
+            return defaults;
+        }
+        return data;
     }
 
     public static void write(Path file, FileData data) throws IOException {
@@ -93,7 +106,7 @@ public final class ChatRules {
     }
 
     public static final class FileData {
-        public int version = 1;
+        public int version = VERSION;
         public List<GroupData> groups = new ArrayList<>();
         public List<TabData> tabs = new ArrayList<>();
     }
