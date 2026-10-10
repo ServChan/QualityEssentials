@@ -1,10 +1,12 @@
 package org.lts.qualityessentials.mixin;
 
 import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.Hud;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import org.lts.qualityessentials.chat.ChatSessions;
 import org.lts.qualityessentials.effects.EffectTimerHud;
 import org.lts.qualityessentials.food.FoodHud;
 import org.lts.qualityessentials.mount.MountHud;
@@ -19,6 +21,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class HudMixin {
     @Unique
     private boolean qualityessentials$vehicleShifted;
+
+    @Inject(method = "onDisconnected", at = @At("HEAD"))
+    private void qualityessentials$saveChat(CallbackInfo ci) {
+        ChatSessions.onDisconnected(Minecraft.getInstance());
+    }
 
     @Inject(method = "extractEffects", at = @At("TAIL"))
     private void qualityessentials$effectTimers(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker, CallbackInfo ci) {

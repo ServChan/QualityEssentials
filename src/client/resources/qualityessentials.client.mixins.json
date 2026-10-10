@@ -12,7 +12,10 @@
     "ItemStackMixin",
     "ItemContainerContentsMixin",
     "AbstractContainerScreenMixin",
-    "ScreenshotMixin"
+    "ScreenshotMixin",
+    "ChatComponentMixin",
+    "ChatComponentAccessor",
+    "ChatScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

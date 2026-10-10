@@ -87,6 +87,15 @@ class LanguageFilesTest {
         for (QEConfig.DarkPreset preset : QEConfig.DarkPreset.values()) {
             expected.add("qualityessentials.dark." + preset.name().toLowerCase(Locale.ROOT));
         }
+        for (int size : QEConfig.HISTORY_SIZES) {
+            expected.add("qualityessentials.chat.history." + size);
+        }
+        for (QEConfig.ChatSize size : QEConfig.ChatSize.values()) {
+            expected.add("qualityessentials.chat.size." + size.name().toLowerCase(Locale.ROOT));
+        }
+        for (QEConfig.ChatTimestamps style : QEConfig.ChatTimestamps.values()) {
+            expected.add("qualityessentials.chat.time." + style.name().toLowerCase(Locale.ROOT));
+        }
         for (String property : LookAtFormat.STATE_PROPERTIES) {
             if (!property.equals("age")) {
                 expected.add("qualityessentials.lookat.state." + property);

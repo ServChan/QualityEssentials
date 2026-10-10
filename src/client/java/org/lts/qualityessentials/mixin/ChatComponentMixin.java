@@ -1,0 +1,60 @@
+package org.lts.qualityessentials.mixin;
+
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.components.ChatComponent;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
+import net.minecraft.util.FormattedCharSequence;
+import org.lts.qualityessentials.chat.ChatDecor;
+import org.lts.qualityessentials.chat.ChatModule;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.List;
+
+@Mixin(ChatComponent.class)
+public abstract class ChatComponentMixin {
+    @Shadow
+    @Final
+    private List<GuiMessage> allMessages;
+
+    @Shadow
+    @Final
+    private List<GuiMessage.Line> trimmedMessages;
+
+    @ModifyExpressionValue(method = {"addMessageToDisplayQueue", "addMessageToQueue", "addRecentChat"},
+            at = @At(value = "CONSTANT", args = "intValue=100"))
+    private int qualityessentials$historyLimit(int original) {
+        return ChatModule.historyLimit(original);
+    }
+
+    @ModifyVariable(method = "addMessage", at = @At("STORE"))
+    private GuiMessage qualityessentials$register(GuiMessage message) {
+        ChatDecor.register(message, allMessages, trimmedMessages);
+        return message;
+    }
+
+    @WrapOperation(method = "addMessageToDisplayQueue", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/client/multiplayer/chat/GuiMessage;splitLines(Lnet/minecraft/client/gui/Font;I)Ljava/util/List;"))
+    private List<FormattedCharSequence> qualityessentials$decorate(GuiMessage message, Font font, int width,
+            Operation<List<FormattedCharSequence>> original) {
+        return original.call(ChatDecor.decorate(message), font, width);
+    }
+
+    @Inject(method = "getWidth(D)I", at = @At("RETURN"), cancellable = true)
+    private static void qualityessentials$width(double pct, CallbackInfoReturnable<Integer> cir) {
+        cir.setReturnValue(ChatModule.width(cir.getReturnValue(), pct));
+    }
+
+    @Inject(method = "getHeight(D)I", at = @At("RETURN"), cancellable = true)
+    private static void qualityessentials$height(double pct, CallbackInfoReturnable<Integer> cir) {
+        cir.setReturnValue(ChatModule.height(cir.getReturnValue(), pct));
+    }
+}

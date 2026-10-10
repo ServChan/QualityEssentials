@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.resources.Identifier;
+import org.lts.qualityessentials.chat.ChatModule;
 import org.lts.qualityessentials.core.Module;
 import org.lts.qualityessentials.core.QE;
 import org.lts.qualityessentials.equipment.EquipmentHud;
@@ -41,6 +42,7 @@ public final class QualityEssentialsClient implements ClientModInitializer {
         editorKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.qualityessentials.hud_editor", InputConstants.Type.KEYBOARD, InputConstants.UNKNOWN.getValue(), CATEGORY));
         KeyboardModule.init(CATEGORY);
+        ChatModule.init(CATEGORY);
         FoodHud.registerTooltip();
         ShulkerPreview.register();
         HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Identifier.fromNamespaceAndPath(MOD_ID, "equipment"),
@@ -52,6 +54,7 @@ public final class QualityEssentialsClient implements ClientModInitializer {
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "stats"), (graphics, tickCounter) -> StatsHud.extract(graphics));
         ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
             KeyboardModule.tick(minecraft);
+            ChatModule.tick(minecraft);
             MountHud.tick(minecraft);
             NewItemTracker.tick(minecraft);
             while (editorKey.consumeClick()) {

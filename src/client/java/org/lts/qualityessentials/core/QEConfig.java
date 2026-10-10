@@ -9,11 +9,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class QEConfig {
     public static final int CURRENT_VERSION = 2;
+    public static final int[] HISTORY_SIZES = {100, 1000, 4096, 16384};
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public int configVersion = CURRENT_VERSION;
@@ -67,6 +70,16 @@ public final class QEConfig {
     public boolean screenshotFolder = true;
     public boolean screenshotCopy = true;
 
+    public int chatHistorySize = 16384;
+    public boolean chatRestore = true;
+    public String chatWidth = ChatSize.NORMAL.name();
+    public String chatHeight = ChatSize.NORMAL.name();
+    public String chatTimestamps = ChatTimestamps.OFF.name();
+    public boolean chatCollapse = true;
+    public boolean chatFixWords = true;
+    public boolean chatFixCommands = true;
+    public List<String> chatLayoutIgnore = new ArrayList<>();
+
     public Map<String, HudLayout> layouts = new LinkedHashMap<>();
 
     public QEConfig() {
@@ -102,6 +115,18 @@ public final class QEConfig {
 
     public DarkPreset darkPreset() {
         return DarkPreset.parse(darkScreenPreset);
+    }
+
+    public ChatSize chatWidthSize() {
+        return ChatSize.parse(chatWidth);
+    }
+
+    public ChatSize chatHeightSize() {
+        return ChatSize.parse(chatHeight);
+    }
+
+    public ChatTimestamps chatTimestampStyle() {
+        return ChatTimestamps.parse(chatTimestamps);
     }
 
     public void resetModule(Module module) {
@@ -164,6 +189,16 @@ public final class QEConfig {
                 screenshotFolder = defaults.screenshotFolder;
                 screenshotCopy = defaults.screenshotCopy;
             }
+            case CHAT -> {
+                chatHistorySize = defaults.chatHistorySize;
+                chatRestore = defaults.chatRestore;
+                chatWidth = defaults.chatWidth;
+                chatHeight = defaults.chatHeight;
+                chatTimestamps = defaults.chatTimestamps;
+                chatCollapse = defaults.chatCollapse;
+                chatFixWords = defaults.chatFixWords;
+                chatFixCommands = defaults.chatFixCommands;
+            }
         }
         setEnabled(module, true);
     }
@@ -184,6 +219,19 @@ public final class QEConfig {
         modules = cleaned;
         equipmentAnchor = EquipmentAnchor.parse(equipmentAnchor).name();
         darkScreenPreset = DarkPreset.parse(darkScreenPreset).name();
+        chatHistorySize = historySize(chatHistorySize);
+        chatWidth = ChatSize.parse(chatWidth).name();
+        chatHeight = ChatSize.parse(chatHeight).name();
+        chatTimestamps = ChatTimestamps.parse(chatTimestamps).name();
+        List<String> ignore = new ArrayList<>();
+        if (chatLayoutIgnore != null) {
+            for (String word : chatLayoutIgnore) {
+                if (word != null && !word.isBlank() && !ignore.contains(word.trim())) {
+                    ignore.add(word.trim());
+                }
+            }
+        }
+        chatLayoutIgnore = ignore;
         if (layouts == null) {
             layouts = new LinkedHashMap<>();
         }
@@ -250,6 +298,67 @@ public final class QEConfig {
             return true;
         } catch (Exception exception) {
             return false;
+        }
+    }
+
+    public static int historySize(int value) {
+        int best = HISTORY_SIZES[0];
+        for (int size : HISTORY_SIZES) {
+            if (Math.abs(size - value) < Math.abs(best - value)) {
+                best = size;
+            }
+        }
+        return best;
+    }
+
+    public enum ChatSize {
+        NORMAL(1.0),
+        WIDE(1.5),
+        WIDER(2.0),
+        FULL(0.0);
+
+        private final double factor;
+
+        ChatSize(double factor) {
+            this.factor = factor;
+        }
+
+        public double factor() {
+            return factor;
+        }
+
+        static ChatSize parse(String value) {
+            for (ChatSize size : values()) {
+                if (size.name().equalsIgnoreCase(value)) {
+                    return size;
+                }
+            }
+            return NORMAL;
+        }
+    }
+
+    public enum ChatTimestamps {
+        OFF(null),
+        MINUTES("HH:mm"),
+        SECONDS("HH:mm:ss");
+
+        private final String pattern;
+
+        ChatTimestamps(String pattern) {
+            this.pattern = pattern;
+        }
+
+        public String pattern() {
+            return pattern;
+        }
+
+        static ChatTimestamps parse(String value) {
+            for (ChatTimestamps style : values()) {
+                if (style.name().equalsIgnoreCase(value)) {
+                    return style;
+                }
+            }
+            return OFF;
         }
     }
 

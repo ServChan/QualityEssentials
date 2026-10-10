@@ -7,11 +7,16 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.ChatFormatting;
+import org.lts.qualityessentials.chat.ChatDecor;
+import org.lts.qualityessentials.chat.ChatModule;
 import org.lts.qualityessentials.core.HudElement;
 import org.lts.qualityessentials.core.Module;
 import org.lts.qualityessentials.core.QE;
@@ -197,6 +202,7 @@ public class SettingsScreen extends Screen {
             case MOUNT -> MountHud.size(this.font, MountHud.preview(working))[1] + 26;
             case SHULKER -> ClientShulkerTooltip.height(ShulkerPreview.sample(working)) + 36;
             case SCREENSHOTS -> screenshotLines().size() * 10 + 30;
+            case CHAT -> chatPreview().size() * 10 + 30;
             default -> compact ? 46 : 58;
         };
     }
@@ -224,6 +230,40 @@ public class SettingsScreen extends Screen {
     private List<FormattedCharSequence> screenshotLines() {
         QEConfig config = QE.blocker(Module.SCREENSHOTS) == null && working.enabled(Module.SCREENSHOTS) ? working : disabled(working);
         return this.font.split(ScreenshotActions.sample(config), contentWidth - 28);
+    }
+
+    private List<Component> chatPreview() {
+        List<Component> lines = new ArrayList<>();
+        QEConfig.ChatTimestamps style = working.chatTimestampStyle();
+        long now = System.currentTimeMillis();
+        lines.add(chatLine(style, now - 90_000L, Component.literal("<Steve> ").append(Component.translatable("qualityessentials.settings.preview.chat.hello")), 1));
+        lines.add(chatLine(style, now - 30_000L, Component.translatable("qualityessentials.settings.preview.chat.restart").withStyle(ChatFormatting.YELLOW),
+                working.chatCollapse ? 3 : 1));
+        if (working.chatFixWords) {
+            lines.add(fixLine("ghbdtn? rfr ltkf&", "привет, как дела?"));
+        }
+        if (working.chatFixCommands) {
+            lines.add(fixLine("/ызфцт", "/spawn"));
+        }
+        return lines;
+    }
+
+    private static Component chatLine(QEConfig.ChatTimestamps style, long time, Component text, int count) {
+        MutableComponent line = Component.empty();
+        if (style != QEConfig.ChatTimestamps.OFF) {
+            line.append(Component.literal(ChatDecor.format(style, time) + " ").withStyle(ChatFormatting.DARK_GRAY));
+        }
+        line.append(text);
+        if (count > 1) {
+            line.append(Component.literal(" (×" + count + ")").withStyle(ChatFormatting.GRAY));
+        }
+        return line;
+    }
+
+    private static Component fixLine(String typed, String fixed) {
+        return Component.literal(typed).withStyle(ChatFormatting.GRAY, ChatFormatting.STRIKETHROUGH)
+                .append(Component.literal("  →  ").withStyle(Style.EMPTY.withStrikethrough(false).withColor(ChatFormatting.DARK_GRAY)))
+                .append(Component.literal(fixed).withStyle(Style.EMPTY.withStrikethrough(false).withColor(ChatFormatting.GREEN)));
     }
 
     private static HudElement hudElement(Module module) {
@@ -275,6 +315,7 @@ public class SettingsScreen extends Screen {
             case SHULKER -> Items.SHULKER_BOX;
             case NEW_ITEMS -> Items.NETHER_STAR;
             case SCREENSHOTS -> Items.PAINTING;
+            case CHAT -> Items.WRITABLE_BOOK;
             case DARK_SCREEN -> Items.OBSIDIAN;
             case KEYBOARD -> Items.OAK_SIGN;
         });
@@ -343,6 +384,32 @@ public class SettingsScreen extends Screen {
                 list.add(toggle("qualityessentials.option.screenshots.open", c -> c.screenshotOpen, c -> c.screenshotOpen = !c.screenshotOpen));
                 list.add(toggle("qualityessentials.option.screenshots.folder", c -> c.screenshotFolder, c -> c.screenshotFolder = !c.screenshotFolder));
                 list.add(toggle("qualityessentials.option.screenshots.copy", c -> c.screenshotCopy, c -> c.screenshotCopy = !c.screenshotCopy));
+            }
+            case CHAT -> {
+                list.add(toggle("qualityessentials.option.chat.fix_words", c -> c.chatFixWords, c -> c.chatFixWords = !c.chatFixWords));
+                list.add(toggle("qualityessentials.option.chat.fix_commands", c -> c.chatFixCommands, c -> c.chatFixCommands = !c.chatFixCommands));
+                list.add(toggle("qualityessentials.option.chat.restore", c -> c.chatRestore, c -> c.chatRestore = !c.chatRestore));
+                list.add(toggle("qualityessentials.option.chat.collapse", c -> c.chatCollapse, c -> c.chatCollapse = !c.chatCollapse));
+                List<Choice> sizes = new ArrayList<>();
+                for (int size : QEConfig.HISTORY_SIZES) {
+                    sizes.add(new Choice("qualityessentials.chat.history." + size, c -> c.chatHistorySize = size, c -> c.chatHistorySize == size));
+                }
+                list.add(new Option("qualityessentials.option.chat.history", null, null, sizes));
+                List<Choice> widths = new ArrayList<>();
+                List<Choice> heights = new ArrayList<>();
+                for (QEConfig.ChatSize size : QEConfig.ChatSize.values()) {
+                    String key = "qualityessentials.chat.size." + size.name().toLowerCase(Locale.ROOT);
+                    widths.add(new Choice(key, c -> c.chatWidth = size.name(), c -> c.chatWidthSize() == size));
+                    heights.add(new Choice(key, c -> c.chatHeight = size.name(), c -> c.chatHeightSize() == size));
+                }
+                list.add(new Option("qualityessentials.option.chat.width", null, null, widths));
+                list.add(new Option("qualityessentials.option.chat.height", null, null, heights));
+                List<Choice> stamps = new ArrayList<>();
+                for (QEConfig.ChatTimestamps style : QEConfig.ChatTimestamps.values()) {
+                    stamps.add(new Choice("qualityessentials.chat.time." + style.name().toLowerCase(Locale.ROOT),
+                            c -> c.chatTimestamps = style.name(), c -> c.chatTimestampStyle() == style));
+                }
+                list.add(new Option("qualityessentials.option.chat.timestamps", null, null, stamps));
             }
             case DARK_SCREEN -> {
                 List<Choice> presets = new ArrayList<>();
@@ -526,6 +593,24 @@ public class SettingsScreen extends Screen {
                 graphics.fill(contentX + 10, y0 - 1, contentX + contentWidth - 10, y0 + chatHeight, 0x80000000);
                 for (int i = 0; i < chat.size(); i++) {
                     graphics.text(this.font, chat.get(i), contentX + 14, y0 + 1 + i * 10, 0xFFFFFFFF, true);
+                }
+            }
+            case CHAT -> {
+                if (!live) {
+                    disabledNote(graphics, cx, top + inner / 2 - 4);
+                    break;
+                }
+                List<Component> chat = chatPreview();
+                int chatHeight = chat.size() * 10 + 2;
+                int y0 = top + (inner - chatHeight) / 2;
+                graphics.fill(contentX + 10, y0 - 1, contentX + contentWidth - 10, y0 + chatHeight, 0x80000000);
+                for (int i = 0; i < chat.size(); i++) {
+                    graphics.text(this.font, chat.get(i), contentX + 14, y0 + 1 + i * 10, 0xFFFFFFFF, true);
+                }
+                if (working.chatFixWords || working.chatFixCommands) {
+                    Component caption = Component.translatable("qualityessentials.settings.preview.chat.key",
+                            ChatModule.flipKey == null ? Component.literal("Pause") : ChatModule.flipKey.getTranslatedKeyMessage());
+                    graphics.text(this.font, caption, contentX + contentWidth - 6 - this.font.width(caption), previewY + 4, Palette.TEXT_DISABLED, false);
                 }
             }
             case DARK_SCREEN -> {

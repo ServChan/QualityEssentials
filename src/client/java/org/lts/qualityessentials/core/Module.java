@@ -14,6 +14,7 @@ public enum Module {
     SHULKER("Shulker Box Tooltip", "shulkerboxtooltip", "shulker-box-tooltip", "shulker_box_tooltip"),
     NEW_ITEMS("Item Highlighter", "itemhighlighter", "item-highlighter", "item_highlighter"),
     SCREENSHOTS(null),
+    CHAT("Chat Patches", "chatpatches"),
     DARK_SCREEN("Dark Loading Screen", "dark-loading-screen", "darkloadingscreen", "dark_loading_screen"),
     KEYBOARD("BindBoard", "bindboard");
 
