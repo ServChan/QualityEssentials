@@ -22,12 +22,10 @@ import org.lts.qualityessentials.lookat.LookAtHud;
 import org.lts.qualityessentials.mount.MountHud;
 import org.lts.qualityessentials.newitems.NewItemTracker;
 import org.lts.qualityessentials.shulker.ShulkerPreview;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class QualityEssentialsClient implements ClientModInitializer {
     public static final String MOD_ID = "qualityessentials";
-    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    public static final ModLog LOGGER = ModLog.root();
     private static final KeyMapping.Category CATEGORY =
             KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
 
@@ -75,7 +73,7 @@ public final class QualityEssentialsClient implements ClientModInitializer {
                 blocked.append(' ').append(module.id()).append("<-").append(blocker);
             }
         }
-        LOGGER.info("QualityEssentials initialized{}", blocked.isEmpty() ? "" : "; yielding to:" + blocked);
+        LOGGER.ready(blocked.isEmpty() ? null : "yielding to {}", blocked.toString().strip());
     }
 
     public static Screen createKeyboardScreen(Screen parent) {

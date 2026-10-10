@@ -81,7 +81,7 @@ public final class ChatView {
                 ChatRules.read(file);
                 Blaze3D.openPath(file);
             } catch (Exception exception) {
-                QualityEssentialsClient.LOGGER.warn("Failed to open {}", file, exception);
+                QualityEssentialsClient.LOGGER.warn("Could not open {}", file, exception);
             }
         });
     }
@@ -95,11 +95,11 @@ public final class ChatView {
         rulesStamp = stamp;
         try {
             ChatRules.FileData data = ChatRules.read(file);
-            rules = ChatRules.compile(data, problem -> QualityEssentialsClient.LOGGER.warn("chat_tabs.json: {}", problem));
+            rules = ChatRules.compile(data, problem -> QualityEssentialsClient.LOGGER.warn("Chat tab rule problem in {}: {}", file, problem));
             rulesStamp = stamp(file);
             rulesChanged = true;
         } catch (Exception exception) {
-            QualityEssentialsClient.LOGGER.warn("Failed to read {}", file, exception);
+            QualityEssentialsClient.LOGGER.warn("Could not read {}; keeping the previous chat tab rules", file, exception);
         }
     }
 

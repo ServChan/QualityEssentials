@@ -203,7 +203,7 @@ public final class ChatSessions {
                 return messages;
             }
         } catch (IOException | RuntimeException exception) {
-            QualityEssentialsClient.LOGGER.warn("Failed to read saved chat {}", file, exception);
+            QualityEssentialsClient.LOGGER.warn("Could not read saved chat {}", file, exception);
         }
         return null;
     }
@@ -219,7 +219,7 @@ public final class ChatSessions {
                 Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException exception) {
-            QualityEssentialsClient.LOGGER.warn("Failed to save chat {}", file, exception);
+            QualityEssentialsClient.LOGGER.warn("Could not save chat {}", file, exception);
         }
     }
 

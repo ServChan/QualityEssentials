@@ -32,7 +32,7 @@ final class LitematicaPlusModifiers implements ModifierSource {
                     hotkeys.getMethod("modifiers", String.class),
                     hotkeys.getMethod("setModifiers", String.class, int.class));
         } catch (ReflectiveOperationException | LinkageError exception) {
-            QualityEssentialsClient.LOGGER.warn("Litematica Plus found but its hotkey API is not available", exception);
+            QualityEssentialsClient.LOGGER.warn("Could not find the Litematica Plus hotkey API; its modifiers are not shown", exception);
             return null;
         }
     }

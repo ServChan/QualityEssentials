@@ -9,6 +9,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
+import org.lts.qualityessentials.ModLog;
 import org.lts.qualityessentials.QualityEssentialsClient;
 import org.lts.qualityessentials.chat.layout.LanguageModel;
 import org.lts.qualityessentials.chat.layout.LayoutFixer;
@@ -39,6 +40,7 @@ public final class ChatModule {
     private static Object lastLayout;
     private static String whole;
     private static long nextSendAt;
+    private static final Set<String> REPORTED_FIX_FAILURES = new HashSet<>();
 
     private ChatModule() {
     }
@@ -50,7 +52,7 @@ public final class ChatModule {
             try {
                 fixer = new LayoutFixer(model("ru", 33), model("en", 26));
             } catch (IOException | RuntimeException exception) {
-                QualityEssentialsClient.LOGGER.warn("Failed to load the keyboard layout model", exception);
+                QualityEssentialsClient.LOGGER.warn("Could not load the keyboard layout model; the layout fix is off", exception);
             }
         });
     }
@@ -190,7 +192,9 @@ public final class ChatModule {
             return current.fixInput(message, knownCommand, playerNames(connection), word -> ignored.contains(word.toLowerCase(Locale.ROOT)),
                     config.chatFixWords, config.chatFixCommands);
         } catch (RuntimeException exception) {
-            QualityEssentialsClient.LOGGER.warn("Keyboard layout fix failed", exception);
+            if (REPORTED_FIX_FAILURES.add(ModLog.describe(exception))) {
+                QualityEssentialsClient.LOGGER.warn("Could not fix the keyboard layout of a chat message; sending it unchanged", exception);
+            }
             return message;
         }
     }
