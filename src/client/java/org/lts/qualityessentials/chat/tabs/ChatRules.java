@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public final class ChatRules {
-    public static final int VERSION = 2;
+    public static final int VERSION = 4;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
     private ChatRules() {
@@ -20,30 +20,47 @@ public final class ChatRules {
 
     public static FileData defaults() {
         FileData data = new FileData();
-        data.groups.add(group("joins",
-                "(?iu)(зашёл|зашел|зашла|вошёл|вошел|вошла)\\s+(на|в)\\s+(сервер|игру)",
-                "(?iu)(вышел|вышла|покинул|покинула)\\s+(с|из)\\s+(сервера|игры)",
-                "(?iu)присоединил(ся|ась)\\s+(к\\s+(серверу|игре)|с\\s+клиента)",
-                "(?iu)^\\W*\\[-\\]\\s*отслеживаемый игрок",
-                "(?i)\\b(joined|left) the (game|server)\\b"));
-        data.groups.add(group("anticheat",
-                "(?i)^\\W*[\\[(]\\s*(vulcan|grim|grimac|matrix|spartan|themis|polar|intave|verus|karhu)\\s*[\\])]"));
-        data.groups.add(group("moderation",
-                "(?iu)^\\W*\\[(мат|защита|спам|реклама|mute|ban|warn)\\]"));
+        data.groups.add(group("chat",
+                "(?i)^\\s*\\[X\\]",
+                "^<[A-Za-z0-9_]{3,16}>\\s",
+                "(?U)^\\W*(?:\\[[^\\]]{1,32}\\]\\s*)*(?:\\S{1,2}\\s+)?[A-Za-z0-9_]{3,16}(?:\\s+\\S{1,3})?\\s*:\\s"));
         data.groups.add(group("private",
-                "(?iu)(->|→|»)\\s*(вы|вам|мне|я|me|you)(\\W|$)",
-                "(?iu)(^|\\W)(вы|я|me|you)\\s*(->|→|»)",
-                "(?iu)(шепчет|whispers)",
-                "(?iu)^\\W*\\[(лс|пм|pm|msg|dm|whisper)\\]"));
+                "(?iu)личное сообщение",
+                "(?iuU)(?:->|→)\\s*(?:вы|вам|мне|я|me|you)(?:\\W|$)",
+                "(?iuU)(?:^|\\W)(?:вы|я|me|you)\\s*(?:->|→)",
+                "(?iu)(?:шепчет|whispers)",
+                "(?iuU)^\\W*\\[(?:лс|пм|pm|msg|dm|whisper)\\]"));
+        data.groups.add(group("joins",
+                "(?iu)(?:зашёл|зашел|зашла|вошёл|вошел|вошла)\\s+(?:на|в)\\s+(?:сервер|игру)",
+                "(?iu)(?:вышел|вышла|покинул|покинула)\\s+(?:с|из)\\s+(?:сервера|игры)",
+                "(?iu)присоединил(?:ся|ась)\\s+(?:к\\s+(?:серверу|игре)|с\\s+клиента)",
+                "(?iuU)^\\W*\\[[+-]\\]\\s*отслеживаемый игрок",
+                "(?i)\\b(?:joined|left) the (?:game|server)\\b"));
+        data.groups.add(group("anticheat",
+                "(?iU)^\\W*[\\[(]\\s*(?:vulcan|grim|grimac|matrix|spartan|themis|polar|intave|verus|karhu)\\s*[\\])]",
+                "(?iU)^\\W*squadfilter\\b"));
+        data.groups.add(group("moderation",
+                "(?iuU)^\\W*\\[(?:мат|защита|спам|реклама|mute|ban|warn)\\]",
+                "(?iuU)^\\W*(?:\\S{1,2}\\s+)?(?:\\[[^\\]]{1,32}\\]\\s*)?[A-Za-z0-9_]{3,16}\\s+(?:кикнул|забанил|замутил|разбанил|размутил|предупредил|kicked|banned|muted|warned)\\s",
+                "(?iu)наблюдает за личн"));
+        data.groups.add(group("spy",
+                "(?U)^\\W*(?:\\S{1,2}\\s+)?(?:\\[[^\\]]{1,32}\\]\\s*)?[A-Za-z0-9_]{3,16}\\s*(?:->|→)\\s*[A-Za-z0-9_]{3,16}\\s*:"));
+        data.groups.add(group("coreprotect",
+                "(?iU)^\\W*coreprotect\\b",
+                "(?iuU)^\\W*[\\d.,]+/[smhdwy]\\s+(?:назад|ago)",
+                "(?U)^\\W*\\^\\s*\\(x-?\\d+/y-?\\d+/z-?\\d+/",
+                "(?iuU)^\\W*(?:страница|page)\\s+\\d+/\\d+",
+                "(?iuU)^\\W*транзакции контейнеров"));
         data.groups.add(group("noise",
                 "(?iu)поблизости нет никого",
-                "(?i)(no ?one|nobody) (is )?(near|around)",
-                "(?iu)^\\W*авто-очистка сущностей"));
+                "(?i)(?:no ?one|nobody) (?:is )?(?:near|around)",
+                "(?iuU)^\\W*авто-очистка сущностей",
+                "(?iU)^\\W*\\[server:"));
         data.tabs.add(tab("all", List.of(TabRules.EVERYTHING), List.of()));
-        data.tabs.add(tab("talk", List.of(TabRules.EVERYTHING), List.of("joins", "anticheat", "moderation", "noise")));
+        data.tabs.add(tab("talk", List.of("chat", "private"), List.of("anticheat", "moderation", "spy", "coreprotect", "noise")));
         data.tabs.add(tab("private", List.of("private"), List.of()));
         data.tabs.add(tab("joins", List.of("joins"), List.of()));
-        data.tabs.add(tab("staff", List.of("anticheat", "moderation"), List.of()));
+        data.tabs.add(tab("staff", List.of("anticheat", "moderation", "spy", "coreprotect"), List.of()));
         return data;
     }
 

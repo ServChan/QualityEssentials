@@ -69,8 +69,59 @@ class ChatTabsTest {
         assertTrue(in("joins", "[-] Отслеживаемый игрок \ua45d m1stresss вышел с сервера"));
         assertFalse(in("talk", "Авто-очистка сущностей: 34"));
         assertTrue(in("talk", "[X] \ua418 | [skyimpossible head]\ua41b skyimpossible: а че в чат пишешь"));
-        assertTrue(in("talk", "\ua429 [deksus head]deksus загрызен Зомби."));
+        assertTrue(in("talk", "[X]\ufffcLTS_Server\ud83d\udc09: Ну какой гад воду на спавне разлил"));
         assertEquals("(vulcan)", TabRules.normalize("\u276a\u1d20\u1d1c\u029f\u1d04\u1d00\u0274\u276b"));
+    }
+
+    @Test
+    void talkKeepsOnlyPeople() {
+        List<String> talk = List.of(
+                "[X] \ua418 | [Heromattt head]\ua41b Heromattt \u2726: Найму человека разобрать ферму, делов на час",
+                "\n\u256d\u2500 \ua422 Личное сообщение \u2022 [Merfych head]Merfych \u2192 вам\n\u2570 \u21b3 лады)\n",
+                "\n\u256d\u2500 \ua422 Личное сообщение \u2022 вы \u2192 [Apel head]Apel\n\u2570 \u21b3 Приветики\n",
+                "<Torvald> кто идёт в энд вечером?",
+                "Torvald: участвую");
+        List<String> staff = List.of(
+                "\u276a\u1d20\u1d1c\u029f\u1d04\u1d00\u0274\u276b [Terrible_Fish head]Terrible_Fish провалил Elytra *(Type N)* [2/12]",
+                "SquadFilter \u25ba SpoGi was detected using 'VPNGate' and got kicked! (104.28.232.199)",
+                "SquadFilter \u25ba PassPigeon попытался подключиться, но ранее был заблокирован. (188.243.183.110)",
+                "\ua425  [Red_yozh head]Red_yozh -> Teminick: хай",
+                "[\u2714] [LTS_Server head]LTS_Server теперь наблюдает за личные сообщения.",
+                "[Мат] [Defoltyx head]Defoltyx: /msg Erik400 всё иди",
+                "[Защита] [21:45:50] [nikita_5641 head]nikita_5641 взял Diamond Axe в (-74 70 -5084 в Обычный мир)",
+                "\n \u2139 [LTS_Server head]LTS_Server кикнул V0id_ (ID 2079)\n   \u270e Причина Багоюз.",
+                "0,13/m назад + #bamboo установил bamboo.",
+                "\u00a7f                 \u00a77^ (x395/y123/z-4227/world)\u00a77\u00a7o (a:block)",
+                "\u00a7fСтраница \u00a7f1/10243 \u25b6 \u00a77(\u00a7f\u00a7n1\u00a7r \u00a77| \u00a7f2)",
+                "CoreProtect - Выполняется поиск. Пожалуйста, подождите...",
+                "----- CoreProtect |  Результаты Поиска -----");
+        List<String> neither = List.of(
+                "\ua429 [deksus head]deksus загрызен Зомби.",
+                "\u203a Лицензионный аккаунт подтверждён. Вход выполнен автоматически.",
+                "Применён эффект \u00abРегенерация\u00bb к 929 целям",
+                "Путни\u1d0b м\u1d07жду ми\u1d18\u1d00ми Финн | Игрок [Rama head]Rama завершил \u00abСокровища Края\u00bb (смертей: 0)",
+                "Финн \u00bb Я не лгал. Я просто не договаривал.",
+                "Установлено значение игрового правила advance_time: false",
+                "[Dunmere] Строительство завершено: сторожевая башня.",
+                "[Реестр] Аукцион закрыт и убран в архив. [Аукцион] Сервер Minecraft: Закрыто 5/5",
+                "[Server: Перемотка завершена с 112 тактами в секунду (8.91 мс за такт)]",
+                "Авто-очистка сущностей: 4");
+        for (String line : talk) {
+            assertTrue(in("talk", line), line);
+            assertFalse(in("staff", line), line);
+        }
+        for (String line : staff) {
+            assertTrue(in("staff", line), line);
+            assertFalse(in("talk", line), line);
+        }
+        for (String line : neither) {
+            assertFalse(in("talk", line), line);
+            assertFalse(in("staff", line), line);
+            assertFalse(in("private", line), line);
+        }
+        assertTrue(in("private", talk.get(1)));
+        assertTrue(in("private", talk.get(2)));
+        assertFalse(in("private", staff.get(3)));
     }
 
     @Test

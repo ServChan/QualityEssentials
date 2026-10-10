@@ -10,6 +10,7 @@ import java.util.regex.PatternSyntaxException;
 public final class TabRules {
     public static final String EVERYTHING = "*";
     private static final int MAX_GROUPS = 63;
+    private static final Pattern FORMATTING = Pattern.compile("(?i)§[0-9a-fk-orx]");
     private static final String FANCY = "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡʏᴢ❪❨⦅❫❩⦆【〔〖❲】〕〗❳⟨⟩";
     private static final String PLAIN = "abcdefghijklmnopqrstuvwyz((()))[[[[]]]]<>";
 
@@ -70,7 +71,7 @@ public final class TabRules {
     }
 
     public static String normalize(String text) {
-        String folded = Normalizer.normalize(text, Normalizer.Form.NFKC);
+        String folded = Normalizer.normalize(FORMATTING.matcher(text).replaceAll(""), Normalizer.Form.NFKC);
         StringBuilder out = new StringBuilder(folded.length());
         for (int i = 0; i < folded.length(); i++) {
             char c = folded.charAt(i);
