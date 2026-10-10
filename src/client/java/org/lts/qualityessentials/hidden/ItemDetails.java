@@ -63,7 +63,7 @@ public final class ItemDetails {
         TooltipDisplay display = stack.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);
         if (Minecraft.getInstance().hasShiftDown()) {
             if (config.itemDetailsBlock) {
-                lines.addAll(block(stack, display, config.itemDetailsData));
+                lines.addAll(block(stack, display, config.itemDetailsData, flag.isAdvanced()));
             } else if (wasRevealed) {
                 lines.add(dim(Component.translatable(KEY + "shown")));
             }
@@ -83,12 +83,14 @@ public final class ItemDetails {
         return lines[0];
     }
 
-    static List<Component> block(ItemStack stack, TooltipDisplay display, boolean serverData) {
+    static List<Component> block(ItemStack stack, TooltipDisplay display, boolean serverData, boolean advanced) {
         List<Component> out = new ArrayList<>();
         out.add(Component.empty());
         out.add(Component.translatable(KEY + "header").withStyle(ChatFormatting.DARK_AQUA));
         Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        out.add(row("id", Component.literal(id.toString())));
+        if (!advanced) {
+            out.add(row("id", Component.literal(id.toString())));
+        }
         Identifier model = stack.get(DataComponents.ITEM_MODEL);
         if (model != null && !model.equals(id)) {
             out.add(row("model", Component.literal(model.toString())));
