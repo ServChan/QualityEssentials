@@ -22,20 +22,12 @@ public final class Ui {
         graphics.pose().popMatrix();
     }
 
-    public static int pill(GuiGraphicsExtractor graphics, Font font, Component text, int x, int y, int background, int color) {
-        int width = font.width(text) + 8;
-        graphics.fill(x, y, x + width, y + 11, background);
-        graphics.text(font, text, x + 4, y + 2, color, false);
-        return width;
-    }
-
-    public static void toggle(GuiGraphicsExtractor graphics, int x, int y, boolean on, boolean active, boolean hovered) {
-        int track = !active ? Palette.DIVIDER : on ? Palette.ACCENT_DARK : Palette.SURFACE_HOVER;
-        int border = !active ? Palette.DIVIDER : on ? Palette.ACCENT : hovered ? Palette.BORDER_STRONG : Palette.BORDER;
-        graphics.fill(x, y, x + 22, y + 11, track);
-        graphics.outline(x, y, 22, 11, border);
-        int knobX = on ? x + 12 : x + 2;
-        graphics.fill(knobX, y + 2, knobX + 8, y + 9, !active ? Palette.TEXT_DISABLED : on ? Palette.TEXT_BRIGHT : Palette.TEXT_DIM);
+    public static void slot(GuiGraphicsExtractor graphics, int x, int y) {
+        graphics.fill(x, y, x + 18, y + 18, 0xFF8B8B8B);
+        graphics.fill(x, y, x + 17, y + 1, 0xFF373737);
+        graphics.fill(x, y, x + 1, y + 17, 0xFF373737);
+        graphics.fill(x + 1, y + 17, x + 18, y + 18, 0xFFFFFFFF);
+        graphics.fill(x + 17, y + 1, x + 18, y + 18, 0xFFFFFFFF);
     }
 
     public static void bar(GuiGraphicsExtractor graphics, int x, int y, int width, int height, float fraction, int fill, int background) {

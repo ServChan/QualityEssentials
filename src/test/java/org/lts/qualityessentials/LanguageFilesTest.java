@@ -9,6 +9,7 @@ import org.lts.qualityessentials.core.QEConfig;
 import org.lts.qualityessentials.keyboard.layout.KeyCap;
 import org.lts.qualityessentials.keyboard.layout.KeyboardLayout;
 import org.lts.qualityessentials.lookat.LookAtFormat;
+import org.lts.qualityessentials.text.FormatCode;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -104,6 +105,9 @@ class LanguageFilesTest {
             if (!property.equals("age")) {
                 expected.add("qualityessentials.lookat.state." + property);
             }
+        }
+        for (FormatCode code : FormatCode.values()) {
+            expected.add(code.translationKey());
         }
         for (KeyCap cap : KeyboardLayout.mouse()) {
             expected.add(cap.label());

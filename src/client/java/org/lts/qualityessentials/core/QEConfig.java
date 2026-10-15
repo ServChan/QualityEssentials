@@ -88,6 +88,22 @@ public final class QEConfig {
     public boolean chatLongMessages = true;
     public List<String> chatLayoutIgnore = new ArrayList<>();
 
+    public boolean booksFormatting = true;
+    public boolean booksCodeMarks = true;
+    public boolean booksPageTools = true;
+    public boolean booksSmartPaste = true;
+    public boolean booksAmpersand = false;
+    public boolean booksReaderTools = true;
+    public boolean booksWheel = true;
+    public boolean booksLongTitle = false;
+
+    public boolean signsTools = true;
+    public boolean signsPalette = true;
+    public boolean signsMouse = true;
+    public boolean signsRemember = true;
+    public boolean signsAutoFill = true;
+    public boolean signsAutoConfirm = false;
+
     public Map<String, HudLayout> layouts = new LinkedHashMap<>();
 
     public QEConfig() {
@@ -215,6 +231,24 @@ public final class QEConfig {
                 chatTabs = defaults.chatTabs;
                 chatTab = defaults.chatTab;
                 chatLongMessages = defaults.chatLongMessages;
+            }
+            case BOOKS -> {
+                booksFormatting = defaults.booksFormatting;
+                booksCodeMarks = defaults.booksCodeMarks;
+                booksPageTools = defaults.booksPageTools;
+                booksSmartPaste = defaults.booksSmartPaste;
+                booksAmpersand = defaults.booksAmpersand;
+                booksReaderTools = defaults.booksReaderTools;
+                booksWheel = defaults.booksWheel;
+                booksLongTitle = defaults.booksLongTitle;
+            }
+            case SIGNS -> {
+                signsTools = defaults.signsTools;
+                signsPalette = defaults.signsPalette;
+                signsMouse = defaults.signsMouse;
+                signsRemember = defaults.signsRemember;
+                signsAutoFill = defaults.signsAutoFill;
+                signsAutoConfirm = defaults.signsAutoConfirm;
             }
         }
         setEnabled(module, true);

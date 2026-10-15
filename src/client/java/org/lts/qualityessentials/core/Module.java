@@ -16,6 +16,8 @@ public enum Module {
     NEW_ITEMS("Item Highlighter", "itemhighlighter", "item-highlighter", "item_highlighter"),
     SCREENSHOTS(null),
     CHAT("Chat Patches", "chatpatches"),
+    BOOKS("Scribble", "scribble"),
+    SIGNS(null),
     DARK_SCREEN("Dark Loading Screen", "dark-loading-screen", "darkloadingscreen", "dark_loading_screen"),
     KEYBOARD("BindBoard", "bindboard");
 

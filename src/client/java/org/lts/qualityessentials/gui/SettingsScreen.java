@@ -1,20 +1,33 @@
 package org.lts.qualityessentials.gui;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.Hud;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.ContainerObjectSelectionList;
+import net.minecraft.client.gui.components.CycleButton;
+import net.minecraft.client.gui.components.ObjectSelectionList;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.tooltip.TooltipRenderUtil;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.ChatFormatting;
+import org.lts.qualityessentials.books.BookFiles;
 import org.lts.qualityessentials.chat.ChatDecor;
 import org.lts.qualityessentials.chat.ChatModule;
 import org.lts.qualityessentials.chat.ChatOverlay;
@@ -36,6 +49,8 @@ import org.lts.qualityessentials.shulker.ClientShulkerTooltip;
 import org.lts.qualityessentials.shulker.ShulkerPreview;
 import org.lts.qualityessentials.shulker.ShulkerTooltip;
 import org.lts.qualityessentials.stats.StatsHud;
+import org.lts.qualityessentials.text.FormatCode;
+import org.lts.qualityessentials.text.FormatCodes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,248 +59,184 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class SettingsScreen extends Screen {
-    private static final int HEADER_HEIGHT = 26;
-    private static final int TOP = HEADER_HEIGHT + 8;
-    private static final int CARD_GAP = 2;
+    private static final int HEADER = 33;
+    private static final int FOOTER = 33;
+    private static final int PANE_GAP = 10;
+    private static final int SWITCH_WIDTH = 44;
+    private static final int ROW = 24;
+    private static final int COLUMN_GAP = 12;
+    private static final int TWO_COLUMNS_FROM = 360;
     private static final Identifier EFFECT_BACKGROUND = Identifier.withDefaultNamespace("hud/effect_background");
 
     private final Screen parent;
-    private Module selected = Module.FOOD;
+    private Module selected;
     private QEConfig working;
-    private int sidebarWidth;
-    private int sidebarX;
-    private int contentX;
-    private int contentWidth;
-    private int descriptionY;
-    private int bannerY;
-    private int previewY;
-    private int previewHeight;
-    private int cardHeight = ModuleCard.HEIGHT;
-    private final List<RowLabel> rowLabels = new ArrayList<>();
+    private ModuleList modules;
+    private DetailPane details;
+    private Module detailsFor;
+    private PreviewRow previewRow;
+    private int switchColumns = 1;
+    private final List<Runnable> refreshers = new ArrayList<>();
+    private int px;
+    private int py;
+    private int pw;
+    private int ph;
     private int mouseX;
     private int mouseY;
 
     public SettingsScreen(Screen parent) {
+        this(parent, Module.FOOD);
+    }
+
+    public SettingsScreen(Screen parent, Module module) {
         super(Component.translatable("qualityessentials.settings.title"));
         this.parent = parent;
+        this.selected = module;
+        this.working = QE.config().copy();
+    }
+
+    @Override
+    public void added() {
+        super.added();
         this.working = QE.config().copy();
     }
 
     @Override
     protected void init() {
-        sidebarWidth = Math.max(140, Math.min(190, this.width / 4));
-        int layoutWidth = Math.min(this.width - 16, sidebarWidth + 12 + 520);
-        sidebarX = (this.width - layoutWidth) / 2;
-        contentX = sidebarX + sidebarWidth + 12;
-        contentWidth = layoutWidth - sidebarWidth - 12;
-        int count = Module.values().length;
-        int sidebarSpace = this.height - 34 - TOP;
-        cardHeight = ModuleCard.HEIGHT;
-        if (count * (cardHeight + CARD_GAP) > sidebarSpace) {
-            cardHeight = ModuleCard.COMPACT_HEIGHT;
+        int bodyHeight = this.height - HEADER - FOOTER;
+        int listWidth = Mth.clamp(this.width * 3 / 10, 116, 172);
+        int paneWidth = Math.min(this.width - 12 - listWidth - PANE_GAP, 430);
+        int left = (this.width - listWidth - PANE_GAP - paneWidth) / 2;
+        int rowHeight = Mth.clamp((bodyHeight - 4) / Module.values().length, 18, 22);
+        if (modules == null || modules.rowHeight() != rowHeight) {
+            modules = new ModuleList(this.minecraft, rowHeight);
         }
-        if (count * (cardHeight + CARD_GAP) > sidebarSpace) {
-            cardHeight = Math.max(ModuleCard.MIN_HEIGHT, sidebarSpace / count - CARD_GAP);
-        }
-        int y = TOP;
-        for (Module module : Module.values()) {
-            Module target = module;
-            addRenderableWidget(new ModuleCard(sidebarX, y, sidebarWidth, cardHeight, module, icon(module), () -> selected == target, () -> {
-                selected = target;
-                rebuildWidgets();
-            }));
-            y += cardHeight + CARD_GAP;
-        }
+        modules.updateSizeAndPosition(listWidth, bodyHeight, left, HEADER);
+        modules.select(selected);
+        addRenderableWidget(modules);
 
-        rowLabels.clear();
-        descriptionY = TOP + 18;
-        int descriptionLines = Math.min(3, this.font.split(description(), contentWidth).size());
-        y = descriptionY + descriptionLines * 10 + 6;
-        bannerY = -1;
-        if (QE.blocker(selected) != null) {
-            bannerY = y;
-            y += 22;
-        }
-        List<Option> options = options(selected);
-        int choiceRows = (int) options.stream().filter(option -> option.choices != null).count();
-        int toggleRows = options.size() - choiceRows;
-        int bottom = this.height - 34;
-        previewY = y;
-        previewHeight = previewHeight(false);
-        int rowHeight = SwitchRow.HEIGHT;
-        int columns = 1;
-        if (previewY + previewHeight + 6 + rowsHeight(choiceRows, toggleRows, columns, rowHeight) > bottom) {
-            rowHeight = SwitchRow.COMPACT_HEIGHT;
-        }
-        if (previewY + previewHeight + 6 + rowsHeight(choiceRows, toggleRows, columns, rowHeight) > bottom && toggleRows > 1) {
-            columns = 2;
-        }
-        int rowsHeight = rowsHeight(choiceRows, toggleRows, columns, rowHeight);
-        if (previewY + previewHeight + 6 + rowsHeight > bottom) {
-            previewHeight = Math.max(40, bottom - previewY - 6 - rowsHeight);
-        }
-        y = previewY + previewHeight + 6;
+        double keep = selected == detailsFor && details != null ? details.scrollAmount() : 0;
+        details = new DetailPane(this.minecraft, paneWidth, bodyHeight, left + listWidth + PANE_GAP, HEADER);
+        refreshers.clear();
+        fill(details);
+        details.settle();
+        details.setScrollAmount(keep);
+        detailsFor = selected;
+        addRenderableWidget(details);
 
-        Component reset = Component.translatable("qualityessentials.settings.reset");
-        int resetWidth = this.font.width(reset) + 16;
-        addRenderableWidget(new FlatButton(contentX + contentWidth - resetWidth, TOP, resetWidth, 16, reset, FlatButton.Style.SECONDARY, () -> {
-            working.resetModule(selected);
-            apply();
-        }));
-        HudElement hudElement = hudElement(selected);
-        if (hudElement != null) {
-            Component place = Component.translatable("qualityessentials.settings.layout");
-            int placeWidth = this.font.width(place) + 16;
-            FlatButton layoutButton = addRenderableWidget(new FlatButton(contentX + contentWidth - resetWidth - placeWidth - 4, TOP, placeWidth, 16, place,
-                    FlatButton.Style.PRIMARY, () -> {
-                        QE.update(working);
-                        this.minecraft.gui.setScreen(new HudEditorScreen(this, hudElement));
-                    }));
-            layoutButton.active = QE.blocker(selected) == null;
-        }
-        if (selected == Module.CHAT) {
-            Component rules = Component.translatable("qualityessentials.settings.chat.rules");
-            int rulesWidth = this.font.width(rules) + 16;
-            FlatButton rulesButton = addRenderableWidget(new FlatButton(contentX + contentWidth - resetWidth - rulesWidth - 4, TOP, rulesWidth, 16, rules,
-                    FlatButton.Style.SECONDARY, ChatView::openRules));
-            rulesButton.active = QE.blocker(selected) == null;
-        }
-        Component editor = Component.translatable("qualityessentials.editor.open");
-        int editorWidth = this.font.width(editor) + 16;
-        addRenderableWidget(new FlatButton(this.width - 8 - editorWidth, 5, editorWidth, 16, editor, FlatButton.Style.SECONDARY, () -> {
+        HudElement element = hudElement(selected);
+        addRenderableWidget(Button.builder(Component.translatable("qualityessentials.editor.open"), button -> {
             QE.update(working);
-            this.minecraft.gui.setScreen(new HudEditorScreen(this, null));
-        }));
-        if (selected == Module.KEYBOARD) {
-            Component openLabel = Component.translatable("qualityessentials.keyboard.button.open_short");
-            int openWidth = this.font.width(openLabel) + 20;
-            FlatButton open = addRenderableWidget(new FlatButton(contentX + contentWidth - openWidth - 8, previewY + previewHeight - 26, openWidth, 20,
-                    openLabel, FlatButton.Style.PRIMARY, () -> this.minecraft.gui.setScreen(KeyboardModule.createScreen(this))));
-            open.active = QE.active(Module.KEYBOARD);
-        }
+            this.minecraft.gui.setScreen(new HudEditorScreen(this, element));
+        }).bounds(this.width / 2 - 155, this.height - 27, 150, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("qualityessentials.settings.done"), button -> onClose())
+                .bounds(this.width / 2 + 5, this.height - 27, 150, 20).build());
+    }
 
-        String blocker = QE.blocker(selected);
-        SwitchRow master = addRenderableWidget(new SwitchRow(contentX, y, contentWidth, rowHeight, Component.translatable("qualityessentials.settings.enabled"),
-                QE.active(selected) ? null : ModuleCard.status(selected), () -> working.enabled(selected), () -> {
-                    working.setEnabled(selected, !working.enabled(selected));
-                    apply();
-                }));
-        master.active = blocker == null;
-        y += rowHeight;
-        boolean optionsActive = blocker == null && working.enabled(selected);
-        int columnWidth = columns == 1 ? contentWidth : (contentWidth - 6) / 2;
-        int column = 0;
+    private void fill(DetailPane pane) {
+        int inner = pane.innerWidth();
+        pane.add(new TitleRow(), QE.blocker(selected) != null ? ROW + 12 : ROW);
+        pw = inner;
+        int preview = previewHeight();
+        previewRow = new PreviewRow();
+        pane.add(previewRow, preview + 6);
+        List<FormattedCharSequence> lines = this.font.split(Component.translatable(selected.translationKey() + ".description"), inner);
+        pane.add(new TextRow(lines), lines.size() * 10 + 8);
+
+        List<Option> options = options(selected);
+        switchColumns = columnsFor(options, inner);
+        List<Option> pending = new ArrayList<>();
         for (Option option : options) {
             if (option.choices != null) {
-                if (column > 0) {
-                    column = 0;
-                    y += rowHeight;
-                }
-                y = addChoiceRow(option, y, optionsActive, rowHeight);
+                flushSwitches(pane, pending);
+                pane.add(new ChoiceRow(option), ROW);
             } else {
-                int rowX = contentX + column * (columnWidth + 6);
-                SwitchRow row = addRenderableWidget(new SwitchRow(rowX, y, columnWidth, rowHeight, Component.translatable(option.key),
-                        Component.translatable(option.key + ".hint"), () -> option.state.test(working), () -> {
-                            option.action.accept(working);
-                            apply();
-                        }));
-                row.active = optionsActive;
-                column++;
-                if (column == columns) {
-                    column = 0;
-                    y += rowHeight;
-                }
+                pending.add(option);
             }
         }
-        addRenderableWidget(new FlatButton(this.width / 2 - 75, this.height - 25, 150, 20, Component.translatable("qualityessentials.settings.done"),
-                FlatButton.Style.PRIMARY, this::onClose));
-    }
+        flushSwitches(pane, pending);
 
-    private static int rowsHeight(int choiceRows, int toggleRows, int columns, int rowHeight) {
-        return (1 + choiceRows + (toggleRows + columns - 1) / columns) * rowHeight;
-    }
-
-    private int previewHeight(boolean compact) {
-        compact = compact || this.height < 420;
-        return switch (selected) {
-            case LOOK_AT -> LookAtHud.height(LookAtHud.preview(working)) + 22;
-            case EQUIPMENT -> compact ? 52 : 60;
-            case STATS -> statsPreview().height() + 22;
-            case MOUNT -> MountHud.size(this.font, MountHud.preview(working))[1] + 26;
-            case SHULKER -> ClientShulkerTooltip.height(ShulkerPreview.sample(working)) + 36;
-            case ITEM_DETAILS -> compact ? 100 : 130;
-            case SCREENSHOTS -> screenshotLines().size() * 10 + 30;
-            case CHAT -> chatPreview().size() * 10 + 30;
-            default -> compact ? 46 : 58;
-        };
-    }
-
-    private StatsPreview statsPreview() {
-        List<StatsHud.Stat> server = StatsHud.sample(working, false);
-        List<StatsHud.Stat> single = StatsHud.sample(working, true);
-        int[] a = StatsHud.size(this.font, server, working.statsCompact);
-        int[] b = StatsHud.size(this.font, single, working.statsCompact);
-        int room = contentWidth - 20;
-        float scale = Math.min(1f, room / (float) Math.max(a[0], b[0]));
-        int aw = Math.round(a[0] * scale);
-        int ah = Math.round(a[1] * scale);
-        int bh = Math.round(b[1] * scale);
-        int x1 = contentX + 10;
-        int sideX = Math.max(x1 + aw + 16, contentX + contentWidth / 2 + 4);
-        boolean side = sideX + Math.round(b[0] * scale) <= contentX + contentWidth - 8;
-        if (side) {
-            return new StatsPreview(server, single, scale, x1, 0, sideX, 0, 11 + Math.max(ah, bh));
+        List<Button> actions = new ArrayList<>();
+        if (selected == Module.KEYBOARD) {
+            Button open = Button.builder(Component.translatable("qualityessentials.keyboard.button.open_short"),
+                    button -> this.minecraft.gui.setScreen(KeyboardModule.createScreen(this))).build();
+            refreshers.add(() -> open.active = QE.active(Module.KEYBOARD));
+            actions.add(open);
         }
-        int secondY = 11 + ah + 6;
-        return new StatsPreview(server, single, scale, x1, 0, x1, secondY, secondY + 11 + bh);
+        if (selected == Module.CHAT) {
+            Button rules = Button.builder(Component.translatable("qualityessentials.settings.chat.rules"), button -> ChatView.openRules()).build();
+            refreshers.add(() -> rules.active = QE.blocker(Module.CHAT) == null);
+            actions.add(rules);
+        }
+        if (selected == Module.BOOKS) {
+            actions.add(Button.builder(Component.translatable("qualityessentials.settings.books.folder"), button -> BookFiles.openFolder()).build());
+        }
+        actions.add(Button.builder(Component.translatable("qualityessentials.settings.reset"), button -> {
+            working.resetModule(selected);
+            QE.update(working);
+            working = QE.config().copy();
+            rebuildWidgets();
+        }).build());
+        pane.add(new ActionsRow(actions), ROW + 8);
+        refresh();
     }
 
-    private List<FormattedCharSequence> screenshotLines() {
-        QEConfig config = QE.blocker(Module.SCREENSHOTS) == null && working.enabled(Module.SCREENSHOTS) ? working : disabled(working);
-        return this.font.split(ScreenshotActions.sample(config), contentWidth - 28);
+    private void flushSwitches(DetailPane pane, List<Option> pending) {
+        for (int i = 0; i < pending.size(); i += switchColumns) {
+            pane.add(new SwitchRow(pending.subList(i, Math.min(pending.size(), i + switchColumns))), ROW);
+        }
+        pending.clear();
     }
 
-    private List<Component> chatPreview() {
-        List<Component> lines = new ArrayList<>();
-        QEConfig.ChatTimestamps style = working.chatTimestampStyle();
-        if (ChatOverlay.onHover(working) && !overChatTimes()) {
-            style = QEConfig.ChatTimestamps.OFF;
+    private int columnsFor(List<Option> options, int inner) {
+        if (inner < TWO_COLUMNS_FROM) {
+            return 1;
         }
-        long now = System.currentTimeMillis();
-        lines.add(chatLine(style, now - 90_000L, Component.literal("<Steve> ").append(Component.translatable("qualityessentials.settings.preview.chat.hello")), 1));
-        lines.add(chatLine(style, now - 30_000L, Component.translatable("qualityessentials.settings.preview.chat.restart").withStyle(ChatFormatting.YELLOW),
-                working.chatCollapse ? 3 : 1));
-        if (working.chatFixWords) {
-            lines.add(fixLine("ghbdtn? rfr ltkf&", "привет, как дела?"));
+        int room = (inner - COLUMN_GAP) / 2 - SWITCH_WIDTH - 6;
+        for (Option option : options) {
+            if (option.choices == null && this.font.width(Component.translatable(option.key)) > room) {
+                return 1;
+            }
         }
-        if (working.chatFixCommands) {
-            lines.add(fixLine("/ызфцт", "/spawn"));
-        }
-        return lines;
+        return 2;
     }
 
-    private boolean overChatTimes() {
-        int left = contentX + 10;
-        return selected == Module.CHAT && mouseX >= left && mouseX <= left + 4 + ChatOverlay.zoneWidth(this.font, working.chatTimestampStyle())
-                && mouseY >= previewY && mouseY <= previewY + previewHeight;
+    private boolean optionsActive() {
+        return QE.blocker(selected) == null && working.enabled(selected);
     }
 
-    private static Component chatLine(QEConfig.ChatTimestamps style, long time, Component text, int count) {
-        MutableComponent line = Component.empty();
-        if (style != QEConfig.ChatTimestamps.OFF) {
-            line.append(Component.literal(ChatDecor.format(style, time) + " ").withStyle(ChatFormatting.DARK_GRAY));
+    private void commit() {
+        QE.update(working);
+        working = QE.config().copy();
+        refresh();
+        if (previewRow != null && details != null) {
+            int height = previewHeight() + 6;
+            if (previewRow.getHeight() != height) {
+                previewRow.setHeight(height);
+                details.settle();
+            }
         }
-        line.append(text);
-        if (count > 1) {
-            line.append(Component.literal(" (×" + count + ")").withStyle(ChatFormatting.GRAY));
-        }
-        return line;
     }
 
-    private static Component fixLine(String typed, String fixed) {
-        return Component.literal(typed).withStyle(ChatFormatting.GRAY, ChatFormatting.STRIKETHROUGH)
-                .append(Component.literal("  →  ").withStyle(Style.EMPTY.withStrikethrough(false).withColor(ChatFormatting.DARK_GRAY)))
-                .append(Component.literal(fixed).withStyle(Style.EMPTY.withStrikethrough(false).withColor(ChatFormatting.GREEN)));
+    private void refresh() {
+        for (Runnable refresher : refreshers) {
+            refresher.run();
+        }
+    }
+
+    private void pick(Module module) {
+        if (module != selected) {
+            selected = module;
+            rebuildWidgets();
+        }
+    }
+
+    public static Component status(Module module) {
+        String blocker = QE.blocker(module);
+        if (blocker != null) {
+            return Component.translatable("qualityessentials.settings.card.yielded", QE.modName(blocker));
+        }
+        return Component.translatable(QE.active(module) ? "qualityessentials.settings.card.on" : "qualityessentials.settings.card.off");
     }
 
     private static HudElement hudElement(Module module) {
@@ -295,35 +246,6 @@ public class SettingsScreen extends Screen {
             }
         }
         return null;
-    }
-
-    @Override
-    public void added() {
-        super.added();
-        this.working = QE.config().copy();
-    }
-
-    private int addChoiceRow(Option option, int y, boolean active, int rowHeight) {
-        rowLabels.add(new RowLabel(option.key, y, active, rowHeight));
-        int x = contentX + contentWidth;
-        for (int i = option.choices.size() - 1; i >= 0; i--) {
-            Choice choice = option.choices.get(i);
-            Component label = Component.translatable(choice.key);
-            int width = this.font.width(label) + 14;
-            x -= width - 1;
-            FlatButton button = addRenderableWidget(new FlatButton(x, y + (rowHeight - 16) / 2, width, 16, label, FlatButton.Style.SEGMENT, () -> {
-                choice.apply.accept(working);
-                apply();
-            }).selectedWhen(() -> choice.selected.test(working)));
-            button.active = active;
-        }
-        return y + rowHeight;
-    }
-
-    private void apply() {
-        QE.update(working);
-        working = QE.config().copy();
-        rebuildWidgets();
     }
 
     private static ItemStack icon(Module module) {
@@ -339,13 +261,18 @@ public class SettingsScreen extends Screen {
             case NEW_ITEMS -> Items.NETHER_STAR;
             case SCREENSHOTS -> Items.PAINTING;
             case CHAT -> Items.WRITABLE_BOOK;
+            case BOOKS -> Items.WRITTEN_BOOK;
+            case SIGNS -> Items.CHERRY_SIGN;
             case DARK_SCREEN -> Items.OBSIDIAN;
             case KEYBOARD -> Items.OAK_SIGN;
         });
     }
 
-    private Component description() {
-        return Component.translatable(selected.translationKey() + ".description");
+    private String clip(String text, int width) {
+        if (this.font.width(text) <= width) {
+            return text;
+        }
+        return this.font.plainSubstrByWidth(text, Math.max(0, width - this.font.width("..."))) + "...";
     }
 
     private List<Option> options(Module module) {
@@ -443,6 +370,24 @@ public class SettingsScreen extends Screen {
                 }
                 list.add(new Option("qualityessentials.option.chat.timestamps", null, null, stamps));
             }
+            case BOOKS -> {
+                list.add(toggle("qualityessentials.option.books.formatting", c -> c.booksFormatting, c -> c.booksFormatting = !c.booksFormatting));
+                list.add(toggle("qualityessentials.option.books.marks", c -> c.booksCodeMarks, c -> c.booksCodeMarks = !c.booksCodeMarks));
+                list.add(toggle("qualityessentials.option.books.tools", c -> c.booksPageTools, c -> c.booksPageTools = !c.booksPageTools));
+                list.add(toggle("qualityessentials.option.books.smart_paste", c -> c.booksSmartPaste, c -> c.booksSmartPaste = !c.booksSmartPaste));
+                list.add(toggle("qualityessentials.option.books.ampersand", c -> c.booksAmpersand, c -> c.booksAmpersand = !c.booksAmpersand));
+                list.add(toggle("qualityessentials.option.books.reader", c -> c.booksReaderTools, c -> c.booksReaderTools = !c.booksReaderTools));
+                list.add(toggle("qualityessentials.option.books.wheel", c -> c.booksWheel, c -> c.booksWheel = !c.booksWheel));
+                list.add(toggle("qualityessentials.option.books.long_title", c -> c.booksLongTitle, c -> c.booksLongTitle = !c.booksLongTitle));
+            }
+            case SIGNS -> {
+                list.add(toggle("qualityessentials.option.signs.tools", c -> c.signsTools, c -> c.signsTools = !c.signsTools));
+                list.add(toggle("qualityessentials.option.signs.palette", c -> c.signsPalette, c -> c.signsPalette = !c.signsPalette));
+                list.add(toggle("qualityessentials.option.signs.mouse", c -> c.signsMouse, c -> c.signsMouse = !c.signsMouse));
+                list.add(toggle("qualityessentials.option.signs.remember", c -> c.signsRemember, c -> c.signsRemember = !c.signsRemember));
+                list.add(toggle("qualityessentials.option.signs.autofill", c -> c.signsAutoFill, c -> c.signsAutoFill = !c.signsAutoFill));
+                list.add(toggle("qualityessentials.option.signs.autoconfirm", c -> c.signsAutoConfirm, c -> c.signsAutoConfirm = !c.signsAutoConfirm));
+            }
             case DARK_SCREEN -> {
                 List<Choice> presets = new ArrayList<>();
                 for (QEConfig.DarkPreset preset : QEConfig.DarkPreset.values()) {
@@ -465,52 +410,112 @@ public class SettingsScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float tickDelta) {
         this.mouseX = mouseX;
         this.mouseY = mouseY;
-        graphics.fill(0, 0, this.width, this.height, Palette.BACKGROUND);
-        graphics.fill(0, 0, this.width, HEADER_HEIGHT, Palette.HEADER);
-        graphics.fill(0, HEADER_HEIGHT - 1, this.width, HEADER_HEIGHT, Palette.BORDER);
-        Ui.scaledText(graphics, this.font, Component.literal("QualityEssentials"), 10, 7, 1.5f, Palette.CYAN, true);
-        int subtitleX = 10 + Math.round(this.font.width("QualityEssentials") * 1.5f) + 8;
-        graphics.text(this.font, Component.translatable("qualityessentials.settings.subtitle"), subtitleX, 10, Palette.TEXT_DIM, false);
-        long running = java.util.Arrays.stream(Module.values()).filter(QE::active).count();
-        Component summary = Component.translatable("qualityessentials.settings.summary", running, Module.values().length);
-        int pillWidth = this.font.width(summary) + 8;
-        int editorWidth = this.font.width(Component.translatable("qualityessentials.editor.open")) + 16;
-        Ui.pill(graphics, this.font, summary, this.width - editorWidth - pillWidth - 14, 8, Palette.SURFACE, Palette.TEXT_DIM);
-
-        int sidebarBottom = TOP + Module.values().length * (cardHeight + CARD_GAP);
-        graphics.fill(sidebarX + sidebarWidth + 5, TOP, sidebarX + sidebarWidth + 6, Math.max(sidebarBottom, this.height - 34), Palette.DIVIDER);
-
-        Ui.scaledText(graphics, this.font, Component.translatable(selected.translationKey()), contentX, TOP, 1.5f, Palette.TEXT_BRIGHT, true);
-        List<FormattedCharSequence> lines = this.font.split(description(), contentWidth);
-        for (int i = 0; i < Math.min(3, lines.size()); i++) {
-            graphics.text(this.font, lines.get(i), contentX, descriptionY + i * 10, Palette.TEXT_DIM, false);
-        }
-        String blocker = QE.blocker(selected);
-        if (blocker != null && bannerY >= 0) {
-            Ui.panel(graphics, contentX, bannerY, contentWidth, 18, 0x40FFB74D, Palette.WARNING);
-            graphics.text(this.font, Component.translatable("qualityessentials.settings.banner.yielded", QE.modName(blocker)),
-                    contentX + 6, bannerY + 5, Palette.WARNING, false);
-        }
-        drawPreview(graphics);
-        for (RowLabel label : rowLabels) {
-            graphics.text(this.font, Component.translatable(label.key), contentX + 6, label.y + (label.height - 9) / 2, label.active ? Palette.TEXT_BRIGHT : Palette.TEXT_DISABLED, false);
-            graphics.fill(contentX, label.y + label.height - 1, contentX + contentWidth, label.y + label.height, Palette.DIVIDER);
-        }
-        Component footer = Component.translatable("qualityessentials.settings.footer");
-        if (8 + this.font.width(footer) < this.width / 2 - 75 - 8) {
-            graphics.text(this.font, footer, 8, this.height - 19, Palette.TEXT_DISABLED, false);
-        }
         super.extractRenderState(graphics, mouseX, mouseY, tickDelta);
+        boolean inWorld = this.minecraft.level != null;
+        Identifier top = inWorld ? Screen.INWORLD_HEADER_SEPARATOR : Screen.HEADER_SEPARATOR;
+        Identifier bottom = inWorld ? Screen.INWORLD_FOOTER_SEPARATOR : Screen.FOOTER_SEPARATOR;
+        graphics.blit(RenderPipelines.GUI_TEXTURED, top, 0, HEADER - 2, 0.0F, 0.0F, this.width, 2, 32, 2);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, bottom, 0, this.height - FOOTER, 0.0F, 0.0F, this.width, 2, 32, 2);
+        graphics.centeredText(this.font, this.title, this.width / 2, (HEADER - 9) / 2, Palette.TEXT_BRIGHT);
+    }
+
+    private int previewHeight() {
+        boolean compact = this.height < 420;
+        return switch (selected) {
+            case LOOK_AT -> LookAtHud.height(LookAtHud.preview(working)) + 22;
+            case EQUIPMENT -> compact ? 52 : 60;
+            case STATS -> statsPreview().height() + 22;
+            case MOUNT -> MountHud.size(this.font, MountHud.preview(working))[1] + 26;
+            case SHULKER -> ClientShulkerTooltip.height(ShulkerPreview.sample(working)) + 36;
+            case ITEM_DETAILS -> compact ? 100 : 130;
+            case SCREENSHOTS -> screenshotLines().size() * 10 + 30;
+            case CHAT -> chatPreview().size() * 10 + 30;
+            case BOOKS -> compact ? 84 : 96;
+            case SIGNS -> compact ? 64 : 72;
+            case KEYBOARD -> 60;
+            case NEW_ITEMS -> compact ? 66 : 72;
+            default -> compact ? 46 : 58;
+        };
+    }
+
+    private StatsPreview statsPreview() {
+        List<StatsHud.Stat> server = StatsHud.sample(working, false);
+        List<StatsHud.Stat> single = StatsHud.sample(working, true);
+        int[] a = StatsHud.size(this.font, server, working.statsCompact);
+        int[] b = StatsHud.size(this.font, single, working.statsCompact);
+        int room = pw - 20;
+        float scale = Math.min(1f, room / (float) Math.max(a[0], b[0]));
+        int aw = Math.round(a[0] * scale);
+        int ah = Math.round(a[1] * scale);
+        int bh = Math.round(b[1] * scale);
+        int x1 = 10;
+        int sideX = Math.max(x1 + aw + 16, pw / 2 + 4);
+        boolean side = sideX + Math.round(b[0] * scale) <= pw - 8;
+        if (side) {
+            return new StatsPreview(server, single, scale, x1, 0, sideX, 0, 11 + Math.max(ah, bh));
+        }
+        int secondY = 11 + ah + 6;
+        return new StatsPreview(server, single, scale, x1, 0, x1, secondY, secondY + 11 + bh);
+    }
+
+    private List<FormattedCharSequence> screenshotLines() {
+        QEConfig config = QE.blocker(Module.SCREENSHOTS) == null && working.enabled(Module.SCREENSHOTS) ? working : disabled(working);
+        return this.font.split(ScreenshotActions.sample(config), pw - 28);
+    }
+
+    private List<Component> chatPreview() {
+        List<Component> lines = new ArrayList<>();
+        QEConfig.ChatTimestamps style = working.chatTimestampStyle();
+        if (ChatOverlay.onHover(working) && !overChatTimes()) {
+            style = QEConfig.ChatTimestamps.OFF;
+        }
+        long now = System.currentTimeMillis();
+        lines.add(chatLine(style, now - 90_000L, Component.literal("<Steve> ").append(Component.translatable("qualityessentials.settings.preview.chat.hello")), 1));
+        lines.add(chatLine(style, now - 30_000L, Component.translatable("qualityessentials.settings.preview.chat.restart").withStyle(ChatFormatting.YELLOW),
+                working.chatCollapse ? 3 : 1));
+        if (working.chatFixWords) {
+            lines.add(fixLine("ghbdtn? rfr ltkf&", "привет, как дела?"));
+        }
+        if (working.chatFixCommands) {
+            lines.add(fixLine("/ызфцт", "/spawn"));
+        }
+        return lines;
+    }
+
+    private boolean overChatTimes() {
+        int left = px + 10;
+        return selected == Module.CHAT && mouseX >= left && mouseX <= left + 4 + ChatOverlay.zoneWidth(this.font, working.chatTimestampStyle())
+                && mouseY >= py && mouseY <= py + ph;
+    }
+
+    private static Component chatLine(QEConfig.ChatTimestamps style, long time, Component text, int count) {
+        MutableComponent line = Component.empty();
+        if (style != QEConfig.ChatTimestamps.OFF) {
+            line.append(Component.literal(ChatDecor.format(style, time) + " ").withStyle(ChatFormatting.DARK_GRAY));
+        }
+        line.append(text);
+        if (count > 1) {
+            line.append(Component.literal(" (×" + count + ")").withStyle(ChatFormatting.GRAY));
+        }
+        return line;
+    }
+
+    private static Component fixLine(String typed, String fixed) {
+        return Component.literal(typed).withStyle(ChatFormatting.GRAY, ChatFormatting.STRIKETHROUGH)
+                .append(Component.literal("  →  ").withStyle(Style.EMPTY.withStrikethrough(false).withColor(ChatFormatting.DARK_GRAY)))
+                .append(Component.literal(fixed).withStyle(Style.EMPTY.withStrikethrough(false).withColor(ChatFormatting.GREEN)));
     }
 
     private void drawPreview(GuiGraphicsExtractor graphics) {
-        Ui.panel(graphics, contentX, previewY, contentWidth, previewHeight, Palette.CASE, Palette.BORDER);
-        graphics.text(this.font, Component.translatable("qualityessentials.settings.preview"), contentX + 6, previewY + 4, Palette.TEXT_DISABLED, false);
+        boolean inWorld = this.minecraft.level != null;
+        graphics.fill(px, py, px + pw, py + ph, Palette.CASE);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, inWorld ? Screen.INWORLD_HEADER_SEPARATOR : Screen.HEADER_SEPARATOR, px, py, 0.0F, 0.0F, pw, 2, 32, 2);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, inWorld ? Screen.INWORLD_FOOTER_SEPARATOR : Screen.FOOTER_SEPARATOR, px, py + ph - 2, 0.0F, 0.0F, pw, 2, 32, 2);
         boolean live = QE.blocker(selected) == null && working.enabled(selected);
-        int cx = contentX + contentWidth / 2;
-        int top = previewY + 14;
-        int inner = previewHeight - 18;
-        graphics.enableScissor(contentX + 1, previewY + 1, contentX + contentWidth - 1, previewY + previewHeight - 1);
+        int cx = px + pw / 2;
+        int top = py + 14;
+        int inner = ph - 18;
+        graphics.enableScissor(px, py + 2, px + pw, py + ph - 2);
         switch (selected) {
             case FOOD -> {
                 QEConfig config = live ? working : disabled(working);
@@ -545,7 +550,7 @@ public class SettingsScreen extends Screen {
                 }
                 List<EquipmentHud.Entry> entries = EquipmentHud.preview(working);
                 int[] size = EquipmentHud.size(this.font, entries, working.equipmentHorizontal);
-                float scale = Math.min(1f, Math.min((contentWidth - 20) / (float) size[0], (inner - 2) / (float) size[1]));
+                float scale = Math.min(1f, Math.min((pw - 20) / (float) size[0], (inner - 2) / (float) size[1]));
                 graphics.pose().pushMatrix();
                 graphics.pose().translate(cx - size[0] * scale / 2f, top + (inner - size[1] * scale) / 2f);
                 graphics.pose().scale(scale, scale);
@@ -559,8 +564,8 @@ public class SettingsScreen extends Screen {
                 }
                 float opacity = working.layout(HudElement.STATS).opacity;
                 StatsPreview stats = statsPreview();
-                statsSample(graphics, "qualityessentials.settings.preview.server", stats.server(), stats.x1(), top + stats.y1(), stats.scale(), opacity);
-                statsSample(graphics, "qualityessentials.settings.preview.single", stats.single(), stats.x2(), top + stats.y2(), stats.scale(), opacity);
+                statsSample(graphics, "qualityessentials.settings.preview.server", stats.server(), px + stats.x1(), top + stats.y1(), stats.scale(), opacity);
+                statsSample(graphics, "qualityessentials.settings.preview.single", stats.single(), px + stats.x2(), top + stats.y2(), stats.scale(), opacity);
             }
             case MOUNT -> {
                 if (!live) {
@@ -581,18 +586,17 @@ public class SettingsScreen extends Screen {
                 }
                 ShulkerTooltip sample = ShulkerPreview.sample(working);
                 Component name = Component.translatable("block.minecraft.light_blue_shulker_box");
-                int w = Math.max(ClientShulkerTooltip.width(this.font, sample), this.font.width(name)) + 8;
-                int h = 14 + ClientShulkerTooltip.height(sample) + 2;
-                float scale = Math.min(1f, (inner - 2) / (float) h);
+                int w = Math.max(ClientShulkerTooltip.width(this.font, sample), this.font.width(name));
+                int h = 12 + ClientShulkerTooltip.height(sample);
+                float scale = Math.min(1f, (inner - 8) / (float) h);
                 graphics.pose().pushMatrix();
-                graphics.pose().translate(cx - w * scale / 2f, top + (inner - h * scale) / 2f);
+                graphics.pose().translate(cx - w * scale / 2f, top + 3 + (inner - 6 - h * scale) / 2f);
                 graphics.pose().scale(scale, scale);
-                Ui.panel(graphics, 0, 0, w, h, 0xF0100010, 0xFF2D0F5C);
-                graphics.text(this.font, name, 4, 4, Palette.TEXT_BRIGHT, true);
-                ClientShulkerTooltip.draw(graphics, this.font, sample, 4, 14);
+                TooltipRenderUtil.extractTooltipBackground(graphics, 0, 0, w, h, null);
+                graphics.text(this.font, name, 0, 0, Palette.TEXT_BRIGHT, true);
+                ClientShulkerTooltip.draw(graphics, this.font, sample, 0, 12);
                 graphics.pose().popMatrix();
-                Component caption = Component.translatable("qualityessentials.settings.preview.shulker");
-                graphics.text(this.font, caption, contentX + contentWidth - 6 - this.font.width(caption), previewY + 4, Palette.TEXT_DISABLED, false);
+                caption(graphics, Component.translatable("qualityessentials.settings.preview.shulker"));
             }
             case ITEM_DETAILS -> {
                 if (!live) {
@@ -605,19 +609,17 @@ public class SettingsScreen extends Screen {
                 for (Component line : tip) {
                     w = Math.max(w, this.font.width(line));
                 }
-                w += 8;
-                int h = tip.size() * 10 + 6;
-                float scale = Math.min(1f, Math.min((contentWidth - 20) / (float) w, (inner - 2) / (float) h));
+                int h = tip.size() * 10 - 2;
+                float scale = Math.min(1f, Math.min((pw - 28) / (float) w, (inner - 8) / (float) h));
                 graphics.pose().pushMatrix();
-                graphics.pose().translate(cx - w * scale / 2f, top + (inner - h * scale) / 2f);
+                graphics.pose().translate(cx - w * scale / 2f, top + 3 + (inner - 6 - h * scale) / 2f);
                 graphics.pose().scale(scale, scale);
-                Ui.panel(graphics, 0, 0, w, h, 0xF0100010, 0xFF2D0F5C);
+                TooltipRenderUtil.extractTooltipBackground(graphics, 0, 0, w, h, null);
                 for (int i = 0; i < tip.size(); i++) {
-                    graphics.text(this.font, tip.get(i), 4, 4 + i * 10, Palette.TEXT_BRIGHT, true);
+                    graphics.text(this.font, tip.get(i), 0, i * 10, Palette.TEXT_BRIGHT, true);
                 }
                 graphics.pose().popMatrix();
-                Component caption = Component.translatable(shift ? "qualityessentials.settings.preview.details.release" : "qualityessentials.settings.preview.details.press");
-                graphics.text(this.font, caption, contentX + contentWidth - 6 - this.font.width(caption), previewY + 4, Palette.TEXT_DISABLED, false);
+                caption(graphics, Component.translatable(shift ? "qualityessentials.settings.preview.details.release" : "qualityessentials.settings.preview.details.press"));
             }
             case NEW_ITEMS -> {
                 if (!live) {
@@ -632,8 +634,7 @@ public class SettingsScreen extends Screen {
                 float alpha = working.newItemsAnimate ? 0.7f + 0.3f * Ui.pulse(net.minecraft.util.Util.getMillis(), 1400f) : 1f;
                 for (int i = 0; i < row.length; i++) {
                     int x = x0 + i * 18;
-                    graphics.fill(x, y0, x + 17, y0 + 17, Palette.SURFACE);
-                    graphics.outline(x, y0, 17, 17, Palette.BORDER);
+                    Ui.slot(graphics, x, y0);
                     if (!row[i].isEmpty()) {
                         graphics.item(row[i], x + 1, y0 + 1);
                         graphics.itemDecorations(this.font, row[i], x + 1, y0 + 1);
@@ -643,15 +644,15 @@ public class SettingsScreen extends Screen {
                     }
                 }
                 Component note = Component.translatable("qualityessentials.settings.preview.new_items");
-                graphics.text(this.font, note, cx - this.font.width(note) / 2, y0 + 21, Palette.TEXT_DIM, false);
+                graphics.text(this.font, note, cx - this.font.width(note) / 2, y0 + 22, Palette.TEXT_DIM, false);
             }
             case SCREENSHOTS -> {
                 List<FormattedCharSequence> chat = screenshotLines();
                 int chatHeight = chat.size() * 10 + 2;
                 int y0 = top + (inner - chatHeight) / 2;
-                graphics.fill(contentX + 10, y0 - 1, contentX + contentWidth - 10, y0 + chatHeight, 0x80000000);
+                graphics.fill(px + 10, y0 - 1, px + pw - 10, y0 + chatHeight, 0x80000000);
                 for (int i = 0; i < chat.size(); i++) {
-                    graphics.text(this.font, chat.get(i), contentX + 14, y0 + 1 + i * 10, 0xFFFFFFFF, true);
+                    graphics.text(this.font, chat.get(i), px + 14, y0 + 1 + i * 10, 0xFFFFFFFF, true);
                 }
             }
             case CHAT -> {
@@ -662,23 +663,21 @@ public class SettingsScreen extends Screen {
                 List<Component> chat = chatPreview();
                 int chatHeight = chat.size() * 10 + 2;
                 int y0 = top + (inner - chatHeight) / 2;
-                graphics.fill(contentX + 10, y0 - 1, contentX + contentWidth - 10, y0 + chatHeight, 0x80000000);
+                graphics.fill(px + 10, y0 - 1, px + pw - 10, y0 + chatHeight, 0x80000000);
                 for (int i = 0; i < chat.size(); i++) {
-                    graphics.text(this.font, chat.get(i), contentX + 14, y0 + 1 + i * 10, 0xFFFFFFFF, true);
+                    graphics.text(this.font, chat.get(i), px + 14, y0 + 1 + i * 10, 0xFFFFFFFF, true);
                 }
                 if (working.chatFixWords || working.chatFixCommands) {
-                    Component caption = Component.translatable("qualityessentials.settings.preview.chat.key",
-                            ChatModule.flipKey == null ? Component.literal("Pause") : ChatModule.flipKey.getTranslatedKeyMessage());
-                    graphics.text(this.font, caption, contentX + contentWidth - 6 - this.font.width(caption), previewY + 4, Palette.TEXT_DISABLED, false);
+                    caption(graphics, Component.translatable("qualityessentials.settings.preview.chat.key",
+                            ChatModule.flipKey == null ? Component.literal("Pause") : ChatModule.flipKey.getTranslatedKeyMessage()));
                 }
             }
             case DARK_SCREEN -> {
                 int color = live ? 0xFF000000 | working.darkPreset().rgb() : 0xFFEF323D;
-                int w = Math.min(200, contentWidth - 20);
+                int w = Math.min(200, pw - 20);
                 int h = inner - 4;
                 int x = cx - w / 2;
                 graphics.fill(x, top, x + w, top + h, color);
-                graphics.outline(x, top, w, h, Palette.BORDER);
                 Component logo = Component.literal("MOJANG STUDIOS");
                 graphics.text(this.font, logo, cx - this.font.width(logo) / 2, top + h / 2 - 9, 0xFFFFFFFF, false);
                 int barX = x + 30;
@@ -687,12 +686,31 @@ public class SettingsScreen extends Screen {
                 graphics.fill(barX + 2, top + h / 2 + 6, barX + 2 + (barW - 4) * 2 / 3, top + h / 2 + 8, 0xFFFFFFFF);
             }
             case KEYBOARD -> drawKeyboardSketch(graphics, cx, top, inner);
+            case BOOKS -> {
+                if (!live) {
+                    disabledNote(graphics, cx, top + inner / 2 - 4);
+                    break;
+                }
+                drawBookSketch(graphics, cx, top, inner);
+            }
+            case SIGNS -> {
+                if (!live) {
+                    disabledNote(graphics, cx, top + inner / 2 - 4);
+                    break;
+                }
+                drawSignSketch(graphics, cx, top, inner);
+            }
         }
         graphics.disableScissor();
     }
 
+    private void caption(GuiGraphicsExtractor graphics, Component text) {
+        String line = clip(text.getString(), pw - 12);
+        graphics.text(this.font, line, px + pw - 6 - this.font.width(line), py + 5, Palette.TEXT_DIM, false);
+    }
+
     private void statsSample(GuiGraphicsExtractor graphics, String caption, List<StatsHud.Stat> stats, int x, int y, float scale, float opacity) {
-        graphics.text(this.font, Component.translatable(caption), x, y, Palette.TEXT_DISABLED, false);
+        graphics.text(this.font, Component.translatable(caption), x, y, Palette.TEXT_DIM, false);
         graphics.pose().pushMatrix();
         graphics.pose().translate(x, y + 11);
         graphics.pose().scale(scale, scale);
@@ -715,7 +733,7 @@ public class SettingsScreen extends Screen {
 
     private void disabledNote(GuiGraphicsExtractor graphics, int cx, int y) {
         Component note = Component.translatable("qualityessentials.settings.preview.off");
-        graphics.text(this.font, note, cx - this.font.width(note) / 2, y, Palette.TEXT_DISABLED, false);
+        graphics.text(this.font, note, cx - this.font.width(note) / 2, y, Palette.TEXT_DIM, false);
     }
 
     private void effectSample(GuiGraphicsExtractor graphics, int x, int y, net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> effect,
@@ -726,27 +744,82 @@ public class SettingsScreen extends Screen {
     }
 
     private void drawKeyboardSketch(GuiGraphicsExtractor graphics, int cx, int top, int inner) {
-        int key = Math.max(6, Math.min(10, inner / 5));
+        int key = Math.max(6, Math.min(9, inner / 5));
         int width = 15 * key;
-        int x0 = cx - width / 2;
+        Component hint = Component.translatable("qualityessentials.settings.preview.keyboard",
+                KeyboardModule.openKey == null ? Component.literal("F10") : KeyboardModule.openKey.getTranslatedKeyMessage());
+        int hintWidth = this.font.width(hint);
+        boolean beside = width + 12 + hintWidth <= pw - 16;
+        int x0 = beside ? cx - (width + 12 + hintWidth) / 2 : cx - width / 2;
+        int y0 = top - 4;
         int[] rowKeys = {14, 14, 13, 12};
         for (int row = 0; row < rowKeys.length; row++) {
             for (int k = 0; k < rowKeys[row]; k++) {
                 int x = x0 + k * key + row * key / 3;
-                int y = top + row * key;
+                int y = y0 + row * key;
                 boolean conflict = row == 1 && k == 4 || row == 3 && k == 5;
                 boolean bound = (k + row) % 3 != 0;
-                graphics.fill(x, y, x + key - 1, y + key - 1, conflict ? 0xFF4A1D24 : bound ? 0xFF2A3A50 : 0xFF141C27);
+                int face = conflict ? Palette.CAP_CONFLICT : bound ? Palette.CAP : Palette.CAP_FREE;
+                int edge = conflict ? Palette.CAP_CONFLICT_EDGE : bound ? Palette.CAP_EDGE : Palette.CAP_FREE_EDGE;
+                graphics.fill(x, y, x + key - 1, y + key - 1, edge);
+                graphics.fill(x, y, x + key - 1, y + key - 2, face);
                 if (conflict) {
                     graphics.outline(x, y, key - 1, key - 1, Palette.DANGER);
                 }
             }
         }
-        int spaceY = top + 4 * key;
-        graphics.fill(x0 + 4 * key, spaceY, x0 + 10 * key, spaceY + key - 1, 0xFF2A3A50);
-        Component hint = Component.translatable("qualityessentials.settings.preview.keyboard",
-                KeyboardModule.openKey == null ? Component.literal("F10") : KeyboardModule.openKey.getTranslatedKeyMessage());
-        graphics.text(this.font, hint, cx + width / 2 + 10, top + key, Palette.TEXT_DIM, false);
+        int spaceY = y0 + 4 * key;
+        graphics.fill(x0 + 4 * key, spaceY, x0 + 10 * key, spaceY + key - 1, Palette.CAP_EDGE);
+        graphics.fill(x0 + 4 * key, spaceY, x0 + 10 * key, spaceY + key - 2, Palette.CAP);
+        if (beside) {
+            graphics.text(this.font, hint, x0 + width + 12, y0 + key * 2 - 2, Palette.TEXT_DIM, false);
+        }
+    }
+
+    private void drawBookSketch(GuiGraphicsExtractor graphics, int cx, int top, int inner) {
+        int pageWidth = 150;
+        int pageHeight = Math.min(inner - 2, 76);
+        int pageX = cx - pageWidth / 2 + 24;
+        int y = top + (inner - pageHeight) / 2;
+        int swatchX = pageX - 44;
+        List<FormatCode> colors = FormatCode.colors();
+        for (int i = 0; i < colors.size(); i++) {
+            int sx = swatchX + (i % 4) * 9;
+            int sy = y + 2 + (i / 4) * 9;
+            graphics.fill(sx, sy, sx + 8, sy + 8, 0xFF000000);
+            graphics.fill(sx + 1, sy + 1, sx + 7, sy + 7, 0xFF000000 | colors.get(i).rgb());
+        }
+        graphics.fill(pageX, y, pageX + pageWidth, y + pageHeight, 0xFFF4EAD5);
+        graphics.outline(pageX, y, pageWidth, pageHeight, 0xFFB59D74);
+        String[] lines = previewLines("qualityessentials.settings.preview.books");
+        for (int i = 0; i < lines.length && 6 + i * 10 < pageHeight - 8; i++) {
+            graphics.text(this.font, FormatCodes.convert(lines[i], FormatCode.AMPERSAND, FormatCode.SECTION), pageX + 6, y + 6 + i * 10, 0xFF000000, false);
+        }
+        caption(graphics, Component.translatable("qualityessentials.settings.preview.books.caption"));
+    }
+
+    private void drawSignSketch(GuiGraphicsExtractor graphics, int cx, int top, int inner) {
+        String[] lines = previewLines("qualityessentials.settings.preview.signs");
+        int signWidth = 104;
+        int signHeight = Math.min(inner - 2, 46);
+        int y = top + (inner - signHeight) / 2;
+        int signX = cx - signWidth - 14;
+        graphics.fill(signX, y, signX + signWidth, y + signHeight, 0xFFB5874F);
+        graphics.outline(signX, y, signWidth, signHeight, 0xFF6B4A26);
+        int previewX = cx + 14;
+        graphics.fill(previewX, y, previewX + signWidth, y + signHeight, 0x80000000);
+        for (int i = 0; i < lines.length && i < 4; i++) {
+            int lineY = y + 4 + i * 10;
+            graphics.text(this.font, lines[i], signX + (signWidth - this.font.width(lines[i])) / 2, lineY, 0xFF2B1D0E, false);
+            String colored = FormatCodes.convert(lines[i], FormatCode.AMPERSAND, FormatCode.SECTION);
+            graphics.text(this.font, colored, previewX + (signWidth - this.font.width(colored)) / 2, lineY, Palette.TEXT_BRIGHT, true);
+        }
+        graphics.text(this.font, ">", cx - this.font.width(">") / 2, y + signHeight / 2 - 4, Palette.TEXT_DIM, false);
+        caption(graphics, Component.translatable("qualityessentials.settings.preview.signs.caption"));
+    }
+
+    private static String[] previewLines(String key) {
+        return Component.translatable(key).getString().split("\\|");
     }
 
     @Override
@@ -757,9 +830,8 @@ public class SettingsScreen extends Screen {
         }
         if (event.key() == InputConstants.KEY_DOWN || event.key() == InputConstants.KEY_UP) {
             int step = event.key() == InputConstants.KEY_DOWN ? 1 : -1;
-            Module[] modules = Module.values();
-            selected = modules[Math.floorMod(selected.ordinal() + step, modules.length)];
-            rebuildWidgets();
+            Module[] all = Module.values();
+            pick(all[Math.floorMod(selected.ordinal() + step, all.length)]);
             return true;
         }
         return super.keyPressed(event);
@@ -772,7 +844,337 @@ public class SettingsScreen extends Screen {
         }
     }
 
-    private record RowLabel(String key, int y, boolean active, int height) {
+    private final class ModuleList extends ObjectSelectionList<ModuleEntry> {
+        private final int rowHeight;
+        private boolean quiet;
+
+        ModuleList(Minecraft minecraft, int rowHeight) {
+            super(minecraft, 0, 0, 0, rowHeight);
+            this.rowHeight = rowHeight;
+            for (Module module : Module.values()) {
+                addEntry(new ModuleEntry(module));
+            }
+        }
+
+        int rowHeight() {
+            return rowHeight;
+        }
+
+        void select(Module module) {
+            quiet = true;
+            for (ModuleEntry entry : children()) {
+                if (entry.module == module) {
+                    setSelected(entry);
+                }
+            }
+            quiet = false;
+        }
+
+        @Override
+        public void setSelected(ModuleEntry entry) {
+            super.setSelected(entry);
+            if (!quiet && entry != null) {
+                pick(entry.module);
+            }
+        }
+
+        @Override
+        public int getRowLeft() {
+            return getX() + 4;
+        }
+
+        @Override
+        public int getRowWidth() {
+            return this.width - (scrollable() ? 18 : 8);
+        }
+
+        @Override
+        protected int scrollBarX() {
+            return getRight() - 10;
+        }
+    }
+
+    private final class ModuleEntry extends ObjectSelectionList.Entry<ModuleEntry> {
+        private final Module module;
+        private final ItemStack icon;
+
+        ModuleEntry(Module module) {
+            this.module = module;
+            this.icon = icon(module);
+        }
+
+        @Override
+        public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a) {
+            boolean on = QE.active(module);
+            int x = getContentX();
+            graphics.item(icon, x + 1, getContentYMiddle() - 8);
+            int textX = x + 21;
+            Component full = Component.translatable(module.translationKey());
+            String name = clip(full.getString(), getContentRight() - textX - 2);
+            Component label = on ? Component.literal(name) : Component.literal(name).withStyle(ChatFormatting.ITALIC);
+            graphics.text(SettingsScreen.this.font, label, textX, getContentYMiddle() - 4, on ? Palette.TEXT_BRIGHT : Palette.TEXT_DIM, true);
+            boolean clipped = !name.equals(full.getString());
+            if (hovered && (clipped || !on)) {
+                Component tip = clipped && !on ? full.copy().append("\n").append(status(module)) : clipped ? full : status(module);
+                graphics.setTooltipForNextFrame(SettingsScreen.this.font, tip, mouseX, mouseY);
+            }
+        }
+
+        @Override
+        public Component getNarration() {
+            return CommonComponents.joinForNarration(Component.translatable(module.translationKey()), status(module));
+        }
+    }
+
+    private final class DetailPane extends ContainerObjectSelectionList<Row> {
+        DetailPane(Minecraft minecraft, int width, int height, int x, int y) {
+            super(minecraft, width, height, y, ROW);
+            updateSizeAndPosition(width, height, x, y);
+        }
+
+        void add(Row row, int height) {
+            addEntry(row, height);
+        }
+
+        void settle() {
+            updateSizeAndPosition(getWidth(), getHeight(), getX(), getY());
+        }
+
+        int innerWidth() {
+            return this.width - 26;
+        }
+
+        @Override
+        public int getRowLeft() {
+            return getX() + 6;
+        }
+
+        @Override
+        public int getRowWidth() {
+            return this.width - (scrollable() ? 18 : 8) - 4;
+        }
+
+        @Override
+        protected int scrollBarX() {
+            return getRight() - 10;
+        }
+    }
+
+    private abstract static class Row extends ContainerObjectSelectionList.Entry<Row> {
+        protected List<AbstractWidget> widgets() {
+            return List.of();
+        }
+
+        @Override
+        public List<? extends GuiEventListener> children() {
+            return widgets();
+        }
+
+        @Override
+        public List<? extends NarratableEntry> narratables() {
+            return widgets();
+        }
+    }
+
+    private final class TitleRow extends Row {
+        private final CycleButton<Boolean> master;
+
+        TitleRow() {
+            Component name = Component.translatable(selected.translationKey());
+            master = CycleButton.onOffBuilder(working.enabled(selected))
+                    .displayOnlyValue()
+                    .withTooltip(value -> Tooltip.create(Component.translatable("qualityessentials.settings.enabled")))
+                    .withCustomNarration(button -> CommonComponents.joinForNarration(name, button.createDefaultNarrationMessage()))
+                    .create(0, 0, SWITCH_WIDTH, 20, name, (button, value) -> {
+                        working.setEnabled(selected, value);
+                        commit();
+                    });
+            refreshers.add(() -> {
+                master.active = QE.blocker(selected) == null;
+                master.setValue(working.enabled(selected));
+            });
+        }
+
+        @Override
+        protected List<AbstractWidget> widgets() {
+            return List.of(master);
+        }
+
+        @Override
+        public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a) {
+            int x = getContentX();
+            int y = getContentY();
+            master.setPosition(getContentRight() - SWITCH_WIDTH, y);
+            master.extractRenderState(graphics, mouseX, mouseY, a);
+            graphics.item(icon(selected), x, y + 2);
+            String name = clip(Component.translatable(selected.translationKey()).getString(), getContentRight() - SWITCH_WIDTH - x - 28);
+            graphics.text(SettingsScreen.this.font, name, x + 22, y + 6, Palette.TEXT_BRIGHT, true);
+            String blocker = QE.blocker(selected);
+            if (blocker != null) {
+                String warning = clip(Component.translatable("qualityessentials.settings.card.yielded", QE.modName(blocker)).getString(), getContentWidth());
+                graphics.text(SettingsScreen.this.font, warning, x, y + 24, Palette.WARNING, true);
+                if (mouseY >= y + 22 && mouseY < y + 34 && mouseX >= x && mouseX < getContentRight()) {
+                    graphics.setTooltipForNextFrame(SettingsScreen.this.font, Component.translatable("qualityessentials.settings.banner.yielded", QE.modName(blocker)),
+                            mouseX, mouseY);
+                }
+            }
+        }
+    }
+
+    private final class PreviewRow extends Row {
+        @Override
+        public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a) {
+            px = getContentX();
+            py = getContentY();
+            pw = getContentWidth();
+            ph = getHeight() - 6;
+            drawPreview(graphics);
+        }
+    }
+
+    private final class TextRow extends Row {
+        private final List<FormattedCharSequence> lines;
+
+        TextRow(List<FormattedCharSequence> lines) {
+            this.lines = lines;
+        }
+
+        @Override
+        public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a) {
+            for (int i = 0; i < lines.size(); i++) {
+                graphics.text(SettingsScreen.this.font, lines.get(i), getContentX(), getContentY() + 1 + i * 10, Palette.TEXT_DIM, false);
+            }
+        }
+    }
+
+    private final class SwitchRow extends Row {
+        private final List<Option> options;
+        private final List<AbstractWidget> buttons = new ArrayList<>();
+
+        SwitchRow(List<Option> options) {
+            this.options = List.copyOf(options);
+            for (Option option : this.options) {
+                Component label = Component.translatable(option.key);
+                CycleButton<Boolean> button = CycleButton.onOffBuilder(option.state.test(working))
+                        .displayOnlyValue()
+                        .withTooltip(value -> Tooltip.create(Component.translatable(option.key + ".hint")))
+                        .withCustomNarration(cycle -> CommonComponents.joinForNarration(label, cycle.createDefaultNarrationMessage()))
+                        .create(0, 0, SWITCH_WIDTH, 20, label, (cycle, value) -> {
+                            if (option.state.test(working) != value) {
+                                option.action.accept(working);
+                            }
+                            commit();
+                        });
+                refreshers.add(() -> {
+                    button.active = optionsActive();
+                    button.setValue(option.state.test(working));
+                });
+                buttons.add(button);
+            }
+        }
+
+        @Override
+        protected List<AbstractWidget> widgets() {
+            return buttons;
+        }
+
+        @Override
+        public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a) {
+            int cell = (getContentWidth() - COLUMN_GAP * (switchColumns - 1)) / switchColumns;
+            for (int i = 0; i < options.size(); i++) {
+                int x = getContentX() + i * (cell + COLUMN_GAP);
+                AbstractWidget button = buttons.get(i);
+                button.setPosition(x + cell - SWITCH_WIDTH, getContentY());
+                button.extractRenderState(graphics, mouseX, mouseY, a);
+                label(graphics, Component.translatable(options.get(i).key), Component.translatable(options.get(i).key + ".hint"),
+                        x, getContentY(), cell - SWITCH_WIDTH - 6, button.active, mouseX, mouseY);
+            }
+        }
+    }
+
+    private final class ChoiceRow extends Row {
+        private final Option option;
+        private final CycleButton<Choice> button;
+        private final int buttonWidth;
+
+        ChoiceRow(Option option) {
+            this.option = option;
+            Component label = Component.translatable(option.key);
+            Choice current = option.choices.get(0);
+            int widest = 0;
+            for (Choice choice : option.choices) {
+                widest = Math.max(widest, SettingsScreen.this.font.width(Component.translatable(choice.key)));
+                if (choice.selected.test(working)) {
+                    current = choice;
+                }
+            }
+            buttonWidth = Math.max(SWITCH_WIDTH + 16, widest + 20);
+            button = CycleButton.<Choice>builder(choice -> Component.translatable(choice.key), current)
+                    .withValues(option.choices)
+                    .displayOnlyValue()
+                    .withCustomNarration(cycle -> CommonComponents.joinForNarration(label, cycle.createDefaultNarrationMessage()))
+                    .create(0, 0, buttonWidth, 20, label, (cycle, value) -> {
+                        value.apply.accept(working);
+                        commit();
+                    });
+            refreshers.add(() -> {
+                button.active = optionsActive();
+                for (Choice choice : option.choices) {
+                    if (choice.selected.test(working)) {
+                        button.setValue(choice);
+                    }
+                }
+            });
+        }
+
+        @Override
+        protected List<AbstractWidget> widgets() {
+            return List.of(button);
+        }
+
+        @Override
+        public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a) {
+            button.setPosition(getContentRight() - buttonWidth, getContentY());
+            button.extractRenderState(graphics, mouseX, mouseY, a);
+            label(graphics, Component.translatable(option.key), null, getContentX(), getContentY(), getContentWidth() - buttonWidth - 6, button.active, mouseX, mouseY);
+        }
+    }
+
+    private final class ActionsRow extends Row {
+        private final List<AbstractWidget> buttons;
+
+        ActionsRow(List<Button> buttons) {
+            this.buttons = List.copyOf(buttons);
+        }
+
+        @Override
+        protected List<AbstractWidget> widgets() {
+            return buttons;
+        }
+
+        @Override
+        public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a) {
+            int gap = 4;
+            int each = Math.min(150, (getContentWidth() - gap * (buttons.size() - 1)) / buttons.size());
+            int x = getContentRight() - each * buttons.size() - gap * (buttons.size() - 1);
+            for (AbstractWidget button : buttons) {
+                button.setWidth(each);
+                button.setPosition(x, getContentY() + 6);
+                button.extractRenderState(graphics, mouseX, mouseY, a);
+                x += each + gap;
+            }
+        }
+    }
+
+    private void label(GuiGraphicsExtractor graphics, Component text, Component hint, int x, int y, int width, boolean active,
+            int mouseX, int mouseY) {
+        String full = text.getString();
+        String shown = clip(full, width);
+        graphics.text(this.font, shown, x, y + 6, active ? Palette.TEXT_BRIGHT : Palette.TEXT_DIM, true);
+        boolean over = mouseX >= x && mouseX < x + Math.min(width, this.font.width(shown)) && mouseY >= y + 4 && mouseY < y + 16;
+        if (over && (hint != null || !shown.equals(full))) {
+            graphics.setTooltipForNextFrame(this.font, hint == null ? text : shown.equals(full) ? hint : text.copy().append("\n").append(hint), mouseX, mouseY);
+        }
     }
 
     private record StatsPreview(List<StatsHud.Stat> server, List<StatsHud.Stat> single, float scale, int x1, int y1, int x2, int y2, int height) {

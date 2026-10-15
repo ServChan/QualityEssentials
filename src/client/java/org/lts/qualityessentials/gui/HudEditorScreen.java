@@ -2,9 +2,11 @@ package org.lts.qualityessentials.gui;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import org.lts.qualityessentials.core.HudElement;
 import org.lts.qualityessentials.core.HudLayout;
@@ -24,6 +26,7 @@ import java.util.Map;
 public class HudEditorScreen extends Screen {
     private static final int SNAP = 5;
     private static final int ROW_HEIGHT = 24;
+    private static final int SLIDER_WIDTH = 104;
 
     private final Screen parent;
     private final QEConfig original;
@@ -37,6 +40,7 @@ public class HudEditorScreen extends Screen {
     private final Map<HudElement, HudPlacement.Rect> rects = new EnumMap<>(HudElement.class);
     private int toolbarY;
     private int toolbarRows = 1;
+    private int nameX;
 
     public HudEditorScreen(Screen parent, HudElement focus) {
         super(Component.translatable("qualityessentials.editor.title"));
@@ -62,14 +66,14 @@ public class HudEditorScreen extends Screen {
         int y = toolbarY;
         if (selected != null) {
             HudElement element = selected;
-            Component name = Component.translatable(element.module().translationKey());
-            int nameWidth = this.font.width(name) + 12;
-            addRenderableWidget(new FlatButton(x, y, nameWidth, 20, name, FlatButton.Style.SEGMENT, () -> { }).selectedWhen(() -> true));
-            x += nameWidth + 8;
-            x = stepper(x, y, "qualityessentials.editor.scale", () -> Math.round(working.layout(element).scale * 100) + "%",
-                    delta -> adjust(element, layout -> layout.scale = HudLayout.clampScale(layout.scale + delta * 0.1f)));
-            x = stepper(x, y, "qualityessentials.editor.opacity", () -> Math.round(working.layout(element).opacity * 100) + "%",
-                    delta -> adjust(element, layout -> layout.opacity = Math.max(0f, Math.min(1f, Math.round((layout.opacity + delta * 0.1f) * 10f) / 10f))));
+            nameX = x;
+            x += this.font.width(Component.translatable(element.module().translationKey())) + 10;
+            addRenderableWidget(new LayoutSlider(x, y, SLIDER_WIDTH, "qualityessentials.editor.scale", HudLayout.MIN_SCALE, HudLayout.MAX_SCALE, 0.05f,
+                    working.layout(element).scale, value -> set(element, layout -> layout.scale = HudLayout.clampScale(value))));
+            x += SLIDER_WIDTH + 4;
+            addRenderableWidget(new LayoutSlider(x, y, SLIDER_WIDTH, "qualityessentials.editor.opacity", 0f, 1f, 0.1f,
+                    working.layout(element).opacity, value -> set(element, layout -> layout.opacity = value)));
+            x += SLIDER_WIDTH + 8;
             if (element == HudElement.EQUIPMENT) {
                 Component orientation = Component.translatable(working.equipmentHorizontal
                         ? "qualityessentials.editor.horizontal" : "qualityessentials.editor.vertical");
@@ -96,8 +100,7 @@ public class HudEditorScreen extends Screen {
                 rebuildWidgets();
             }));
         } else {
-            Component hint = Component.translatable("qualityessentials.editor.pick");
-            addRenderableWidget(new FlatButton(x, y, this.font.width(hint) + 14, 20, hint, FlatButton.Style.SEGMENT, () -> { }));
+            nameX = x;
         }
         Component done = Component.translatable("qualityessentials.settings.done");
         Component cancel = Component.translatable("qualityessentials.editor.cancel");
@@ -127,9 +130,8 @@ public class HudEditorScreen extends Screen {
         if (selected == null) {
             return this.font.width(Component.translatable("qualityessentials.editor.pick")) + 14;
         }
-        int width = this.font.width(Component.translatable(selected.module().translationKey())) + 12 + 8;
-        width += this.font.width(Component.translatable("qualityessentials.editor.scale")) + 6 + 15 + 35 + 16 + 8;
-        width += this.font.width(Component.translatable("qualityessentials.editor.opacity")) + 6 + 15 + 35 + 16 + 8;
+        int width = this.font.width(Component.translatable(selected.module().translationKey())) + 10;
+        width += SLIDER_WIDTH * 2 + 12;
         if (selected == HudElement.EQUIPMENT || selected == HudElement.STATS) {
             width += this.font.width(Component.translatable("qualityessentials.editor.horizontal")) + 18;
         }
@@ -142,18 +144,10 @@ public class HudEditorScreen extends Screen {
                 + this.font.width(Component.translatable("qualityessentials.editor.reset_all")) + 16;
     }
 
-    private int stepper(int x, int y, String key, java.util.function.Supplier<String> value, java.util.function.IntConsumer change) {
-        Component label = Component.translatable(key);
-        int labelWidth = this.font.width(label) + 6;
-        addRenderableWidget(new FlatButton(x, y, labelWidth, 20, label, FlatButton.Style.SEGMENT, () -> { }));
-        x += labelWidth - 1;
-        addRenderableWidget(new FlatButton(x, y, 16, 20, Component.literal("-"), FlatButton.Style.SECONDARY, () -> change.accept(-1)));
-        x += 15;
-        FlatButton display = addRenderableWidget(new FlatButton(x, y, 36, 20, Component.literal(value.get()), FlatButton.Style.SEGMENT, () -> { }));
-        display.active = false;
-        x += 35;
-        addRenderableWidget(new FlatButton(x, y, 16, 20, Component.literal("+"), FlatButton.Style.SECONDARY, () -> change.accept(1)));
-        return x + 16 + 8;
+    private void set(HudElement element, java.util.function.Consumer<HudLayout> change) {
+        HudLayout layout = working.layout(element).copy();
+        change.accept(layout);
+        working.setLayout(element, layout);
     }
 
     private void adjust(HudElement element, java.util.function.Consumer<HudLayout> change) {
@@ -217,7 +211,7 @@ public class HudEditorScreen extends Screen {
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         if (this.minecraft == null || this.minecraft.level == null) {
-            graphics.fill(0, 0, this.width, this.height, 0xFF101820);
+            graphics.fill(0, 0, this.width, this.height, 0xFF101010);
             graphics.outline(this.width / 2 - 91, this.height - 22, 182, 22, Palette.BORDER_STRONG);
         } else {
             graphics.fill(0, 0, this.width, this.height, 0x30000000);
@@ -233,21 +227,31 @@ public class HudEditorScreen extends Screen {
             drawElement(graphics, element, mouseX, mouseY);
         }
         if (guideX >= 0) {
-            graphics.fill(guideX, 0, guideX + 1, this.height, Palette.CYAN);
+            graphics.fill(guideX, 0, guideX + 1, this.height, Palette.HIGHLIGHT);
         }
         if (guideY >= 0) {
-            graphics.fill(0, guideY, this.width, guideY + 1, Palette.CYAN);
+            graphics.fill(0, guideY, this.width, guideY + 1, Palette.HIGHLIGHT);
         }
         int bandY = toolbarY - 4;
         int bandHeight = toolbarRows * ROW_HEIGHT + 4;
         boolean top = toolbarY < this.height / 2;
-        graphics.fill(0, bandY, this.width, bandY + bandHeight, 0xD00B1119);
-        graphics.fill(0, top ? bandY + bandHeight - 1 : bandY, this.width, top ? bandY + bandHeight : bandY + 1, Palette.BORDER);
+        boolean inWorld = this.minecraft != null && this.minecraft.level != null;
+        graphics.fill(0, bandY, this.width, bandY + bandHeight, Palette.HEADER);
+        if (top) {
+            graphics.blit(RenderPipelines.GUI_TEXTURED, inWorld ? Screen.INWORLD_HEADER_SEPARATOR : Screen.HEADER_SEPARATOR,
+                    0, bandY + bandHeight, 0.0F, 0.0F, this.width, 2, 32, 2);
+        } else {
+            graphics.blit(RenderPipelines.GUI_TEXTURED, inWorld ? Screen.INWORLD_FOOTER_SEPARATOR : Screen.FOOTER_SEPARATOR,
+                    0, bandY - 2, 0.0F, 0.0F, this.width, 2, 32, 2);
+        }
+        Component lead = selected == null ? Component.translatable("qualityessentials.editor.pick")
+                : Component.translatable(selected.module().translationKey());
+        graphics.text(this.font, lead, nameX, toolbarY + 6, selected == null ? Palette.TEXT_DIM : Palette.TEXT_BRIGHT, true);
         Component hint = Component.translatable("qualityessentials.editor.hint");
         List<net.minecraft.util.FormattedCharSequence> hintLines = this.font.split(hint, this.width - 24);
-        int hintY = top ? bandY + bandHeight + 4 : 6;
+        int hintY = top ? bandY + bandHeight + 6 : 6;
         int hintHeight = hintLines.size() * 10 + 4;
-        graphics.fill(8, hintY - 2, this.width - 8, hintY + hintHeight - 2, 0xC00B1119);
+        graphics.fill(8, hintY - 2, this.width - 8, hintY + hintHeight - 2, Palette.BACKGROUND);
         for (int i = 0; i < hintLines.size(); i++) {
             graphics.centeredText(this.font, hintLines.get(i), this.width / 2, hintY + i * 10, Palette.TEXT_DIM);
         }
@@ -273,8 +277,11 @@ public class HudEditorScreen extends Screen {
         graphics.pose().popMatrix();
         boolean isSelected = element == selected;
         boolean hovered = rect.contains(mouseX, mouseY);
-        int border = isSelected ? Palette.CYAN : hovered ? 0xC0FFFFFF : 0x60FFFFFF;
-        dashed(graphics, rect.x() - 1, rect.y() - 1, rect.width() + 2, rect.height() + 2, border);
+        if (isSelected) {
+            graphics.outline(rect.x() - 1, rect.y() - 1, rect.width() + 2, rect.height() + 2, Palette.FOCUS);
+        } else {
+            dashed(graphics, rect.x() - 1, rect.y() - 1, rect.width() + 2, rect.height() + 2, hovered ? 0xC0FFFFFF : 0x60FFFFFF);
+        }
         if (!active) {
             graphics.fill(rect.x(), rect.y(), rect.x() + rect.width(), rect.y() + rect.height(), 0x90000000);
         }
@@ -285,8 +292,8 @@ public class HudEditorScreen extends Screen {
             int labelWidth = this.font.width(label) + 8;
             int labelY = rect.y() >= 14 ? rect.y() - 13 : rect.y() + rect.height() + 2;
             int labelX = Math.max(0, Math.min(this.width - labelWidth, rect.x()));
-            graphics.fill(labelX, labelY, labelX + labelWidth, labelY + 11, isSelected ? Palette.ACCENT_DARK : 0xD0182638);
-            graphics.text(this.font, label, labelX + 4, labelY + 2, Palette.TEXT_BRIGHT, false);
+            graphics.fill(labelX, labelY, labelX + labelWidth, labelY + 11, Palette.SURFACE_SELECTED);
+            graphics.text(this.font, label, labelX + 4, labelY + 2, isSelected ? Palette.TEXT_BRIGHT : Palette.TEXT_SUBTLE, true);
         }
     }
 
@@ -423,6 +430,38 @@ public class HudEditorScreen extends Screen {
         QE.update(working);
         if (this.minecraft != null) {
             this.minecraft.gui.setScreen(parent);
+        }
+    }
+
+    private static final class LayoutSlider extends AbstractSliderButton {
+        private final String key;
+        private final float min;
+        private final float max;
+        private final float step;
+        private final java.util.function.Consumer<Float> apply;
+
+        LayoutSlider(int x, int y, int width, String key, float min, float max, float step, float current, java.util.function.Consumer<Float> apply) {
+            super(x, y, width, 20, Component.empty(), (Math.max(min, Math.min(max, current)) - min) / (max - min));
+            this.key = key;
+            this.min = min;
+            this.max = max;
+            this.step = step;
+            this.apply = apply;
+            updateMessage();
+        }
+
+        private float current() {
+            return Math.round((min + (float) this.value * (max - min)) / step) * step;
+        }
+
+        @Override
+        protected void updateMessage() {
+            setMessage(Component.translatable(key).append(": " + Math.round(current() * 100) + "%"));
+        }
+
+        @Override
+        protected void applyValue() {
+            apply.accept(current());
         }
     }
 

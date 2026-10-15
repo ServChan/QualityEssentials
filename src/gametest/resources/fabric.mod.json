@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "qualityessentials_gametest",
+  "version": "1.0.0",
+  "name": "QualityEssentials Game Tests",
+  "environment": "client",
+  "license": "MIT",
+  "entrypoints": {
+    "fabric-client-gametest": ["org.lts.qualityessentials.gametest.QualityEssentialsGameTest"]
+  },
+  "depends": {
+    "qualityessentials": "*",
+    "fabric-client-gametest-api-v1": "*"
+  }
+}

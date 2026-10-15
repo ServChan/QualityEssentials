@@ -24,7 +24,7 @@ import org.lts.qualityessentials.lookat.LookAtFormat;
 public final class MountHud {
     private static final int PAD = 4;
     private static final int TEXT_X = 24;
-    private static final int PANEL = 0xD00B1119;
+    private static final int PANEL = 0x000000;
 
     private static Entity tracked;
     private static Vec3 lastPosition;
@@ -148,15 +148,14 @@ public final class MountHud {
     public static void draw(GuiGraphicsExtractor graphics, Font font, Info info, float opacity) {
         int[] size = size(font, info);
         if (opacity > 0.01f) {
-            graphics.fill(0, 0, size[0], size[1], Ui.withAlpha(PANEL, 0.82f * opacity));
-            graphics.fill(0, 0, 2, size[1], Ui.withAlpha(Palette.ACCENT, Math.max(0.5f, opacity)));
+            graphics.fill(0, 0, size[0], size[1], Ui.withAlpha(PANEL, 0.5f * opacity));
         }
         graphics.item(info.icon, PAD + 1, (size[1] - 16) / 2);
         int y = PAD;
         graphics.text(font, info.name, TEXT_X, y, Palette.TEXT_BRIGHT, true);
         if (info.current >= 0) {
             Component current = currentText(info);
-            graphics.text(font, current, size[0] - PAD - font.width(current), y, Palette.CYAN, true);
+            graphics.text(font, current, size[0] - PAD - font.width(current), y, Palette.HIGHLIGHT, true);
         }
         y += 10;
         if (info.maxHealth > 0) {

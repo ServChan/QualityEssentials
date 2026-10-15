@@ -385,7 +385,7 @@ public class KeyboardScreen extends Screen {
         graphics.fill(0, 0, this.width, HEADER_HEIGHT, Palette.HEADER);
         graphics.fill(0, HEADER_HEIGHT - 1, this.width, HEADER_HEIGHT, Palette.BORDER);
         Component name = Component.translatable("qualityessentials.keyboard.title_short");
-        graphics.text(this.font, name, 10, 8, Palette.CYAN, true);
+        graphics.text(this.font, name, 10, 8, Palette.TEXT_BRIGHT, true);
         graphics.text(this.font, Component.translatable("qualityessentials.keyboard.screen.subtitle"), 10 + this.font.width(name) + 8, 8, Palette.TEXT_DIM, false);
         ConflictAnalyzer.Result conflicts = snapshot.conflicts();
         long bound = snapshot.bindings().stream().filter(binding -> !binding.unbound()).count();
@@ -423,7 +423,7 @@ public class KeyboardScreen extends Screen {
         graphics.text(this.font, Component.translatable("qualityessentials.keyboard.mouse.title"), mx0 + CASE_PADDING, my0 + 4, Palette.TEXT_DIM, false);
         if (layer != 0) {
             Component active = Component.translatable("qualityessentials.keyboard.layer.active", modifierLabel(layer));
-            graphics.text(this.font, active, mx0, my1 + 4, Palette.CYAN, false);
+            graphics.text(this.font, active, mx0, my1 + 4, Palette.HIGHLIGHT, false);
         }
         if (waiting != null) {
             Component hint = Component.translatable("qualityessentials.keyboard.waiting", names.get(waiting));
@@ -467,7 +467,7 @@ public class KeyboardScreen extends Screen {
             graphics.outline(x0, y0, x1 - x0, y1 - y0, Palette.WARNING);
         }
         if (cap.equals(selected)) {
-            graphics.outline(x0 - 1, y0 - 1, x1 - x0 + 2, y1 - y0 + 2, Palette.CYAN);
+            graphics.outline(x0 - 1, y0 - 1, x1 - x0 + 2, y1 - y0 + 2, Palette.HIGHLIGHT);
         }
         if (waiting != null && hovered) {
             graphics.outline(x0, y0, x1 - x0, y1 - y0, 0xFF55FF55);
@@ -543,7 +543,7 @@ public class KeyboardScreen extends Screen {
         graphics.fill(x0, panelTop, x1, panelBottom, Palette.PANEL);
         graphics.outline(x0, panelTop, x1 - x0, panelBottom - panelTop, Palette.BORDER);
         graphics.fill(x0 + 1, panelTop + 1, x1 - 1, panelTop + 15, Palette.HEADER);
-        graphics.text(this.font, title, x0 + 6, panelTop + 4, Palette.CYAN, false);
+        graphics.text(this.font, title, x0 + 6, panelTop + 4, Palette.HIGHLIGHT, false);
     }
 
     private void drawDetails(GuiGraphicsExtractor graphics) {
@@ -658,7 +658,7 @@ public class KeyboardScreen extends Screen {
             }
             graphics.fill(cx, cy + 1, cx + 6, cy + 7, CategoryColors.of(category));
             String text = labels.get(category).getString() + " " + sorted.get(i).getValue()[0];
-            graphics.text(this.font, fit(text, columnWidth - 16), cx + 10, cy, active ? Palette.CYAN : Palette.TEXT, false);
+            graphics.text(this.font, fit(text, columnWidth - 16), cx + 10, cy, active ? Palette.HIGHLIGHT : Palette.TEXT, false);
             legendHits.add(new LegendHit(category, cx - 2, cy - 1, cx + columnWidth - 4, cy + LEGEND_LINE - 1));
         }
     }
@@ -694,8 +694,8 @@ public class KeyboardScreen extends Screen {
     private List<Component> tooltip(KeyCap cap, int layer) {
         List<Component> lines = new ArrayList<>();
         Component keyName = keyOf(cap).getDisplayName();
-        lines.add(layer == 0 ? keyName.copy().withStyle(style -> style.withColor(Palette.CYAN))
-                : modifierLabel(layer).copy().append(" + ").append(keyName).withStyle(style -> style.withColor(Palette.CYAN)));
+        lines.add(layer == 0 ? keyName.copy().withStyle(style -> style.withColor(Palette.HIGHLIGHT))
+                : modifierLabel(layer).copy().append(" + ").append(keyName).withStyle(style -> style.withColor(Palette.HIGHLIGHT)));
         List<Integer> indices = snapshot.indicesOn(cap.mouse(), cap.code(), layer);
         if (indices.isEmpty()) {
             lines.add(Component.translatable("qualityessentials.keyboard.tooltip.free").withStyle(style -> style.withColor(Palette.TEXT_DIM)));

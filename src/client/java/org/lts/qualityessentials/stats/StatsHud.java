@@ -24,7 +24,7 @@ import java.util.List;
 public final class StatsHud {
     private static final int LINE = 10;
     private static final int PAD = 4;
-    private static final int PANEL = 0xD00B1119;
+    private static final int PANEL = 0x000000;
 
     private StatsHud() {
     }
@@ -195,7 +195,7 @@ public final class StatsHud {
     public static void draw(GuiGraphicsExtractor graphics, Font font, List<Stat> stats, boolean compact, float opacity) {
         int[] size = size(font, stats, compact);
         if (opacity > 0.01f) {
-            graphics.fill(0, 0, size[0], size[1], Ui.withAlpha(PANEL, 0.82f * opacity));
+            graphics.fill(0, 0, size[0], size[1], Ui.withAlpha(PANEL, 0.5f * opacity));
         }
         if (compact) {
             int x = PAD;

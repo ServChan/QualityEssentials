@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.resources.Identifier;
+import org.lts.qualityessentials.books.BookModule;
 import org.lts.qualityessentials.chat.ChatModule;
 import org.lts.qualityessentials.core.Module;
 import org.lts.qualityessentials.core.QE;
@@ -22,6 +23,7 @@ import org.lts.qualityessentials.lookat.LookAtHud;
 import org.lts.qualityessentials.mount.MountHud;
 import org.lts.qualityessentials.newitems.NewItemTracker;
 import org.lts.qualityessentials.shulker.ShulkerPreview;
+import org.lts.qualityessentials.signs.SignModule;
 
 public final class QualityEssentialsClient implements ClientModInitializer {
     public static final String MOD_ID = "qualityessentials";
@@ -41,6 +43,8 @@ public final class QualityEssentialsClient implements ClientModInitializer {
                 "key.qualityessentials.hud_editor", InputConstants.Type.KEYBOARD, InputConstants.UNKNOWN.getValue(), CATEGORY));
         KeyboardModule.init(CATEGORY);
         ChatModule.init(CATEGORY);
+        BookModule.init();
+        SignModule.init();
         FoodHud.registerTooltip();
         ShulkerPreview.register();
         HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Identifier.fromNamespaceAndPath(MOD_ID, "equipment"),

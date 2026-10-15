@@ -77,7 +77,7 @@ public final class EquipmentHud {
     public static void draw(GuiGraphicsExtractor graphics, Font font, List<Entry> entries, boolean horizontal, float opacity) {
         int[] size = size(font, entries, horizontal);
         if (opacity > 0.01f) {
-            graphics.fill(0, 0, size[0], size[1], Ui.withAlpha(0x0B1119, 0.82f * opacity));
+            graphics.fill(0, 0, size[0], size[1], Ui.withAlpha(0x000000, 0.5f * opacity));
         }
         if (horizontal) {
             drawRow(graphics, font, entries, 2, 13);

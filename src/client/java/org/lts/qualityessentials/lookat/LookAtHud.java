@@ -10,6 +10,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.util.ARGB;
 import net.minecraft.util.Util;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -17,7 +18,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.equine.AbstractHorse;
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.npc.villager.VillagerData;
 import net.minecraft.world.entity.player.Player;
@@ -43,6 +43,8 @@ import java.util.List;
 public final class LookAtHud {
     private static final Identifier HEART = Identifier.withDefaultNamespace("hud/heart/full");
     private static final Identifier ARMOR = Identifier.withDefaultNamespace("hud/armor_full");
+    private static final Identifier TOOLTIP_BACKGROUND = Identifier.withDefaultNamespace("tooltip/background");
+    private static final Identifier TOOLTIP_FRAME = Identifier.withDefaultNamespace("tooltip/frame");
     private static final long HOLD_MILLIS = 180L;
     private static final int LINE = 10;
     private static final int HEALTH_BAR = 64;
@@ -111,7 +113,7 @@ public final class LookAtHud {
             return null;
         }
         QEConfig config = QE.config();
-        Info info = new Info(state.getBlock().getName(), new ItemStack(state.getBlock().asItem()), Palette.CYAN);
+        Info info = new Info(state.getBlock().getName(), new ItemStack(state.getBlock().asItem()));
         if (config.lookAtShowStates) {
             for (Property<?> property : state.getProperties()) {
                 if (property instanceof IntegerProperty integer && LookAtFormat.shows(property.getName())) {
@@ -169,9 +171,7 @@ public final class LookAtHud {
         } else if (entity instanceof ItemEntity item) {
             icon = item.getItem();
         }
-        int accent = entity instanceof Player ? Palette.PLAYER : entity instanceof Enemy ? Palette.HOSTILE
-                : entity instanceof LivingEntity ? Palette.PASSIVE : Palette.CYAN;
-        Info info = new Info(entity.getDisplayName(), icon, accent);
+        Info info = new Info(entity.getDisplayName(), icon);
         if (entity instanceof ItemFrame frame && !frame.getItem().isEmpty()) {
             info.lines.add(frame.getItem().getHoverName().copy().withStyle(ChatFormatting.GRAY));
         }
@@ -202,7 +202,7 @@ public final class LookAtHud {
     }
 
     public static Info preview(QEConfig config) {
-        Info info = new Info(Component.translatable("block.minecraft.wheat"), new ItemStack(Items.WHEAT), Palette.CYAN);
+        Info info = new Info(Component.translatable("block.minecraft.wheat"), new ItemStack(Items.WHEAT));
         if (config.lookAtShowStates) {
             info.lines.add(Component.translatable("qualityessentials.lookat.growth", 57).withStyle(ChatFormatting.GRAY));
         }
@@ -233,7 +233,7 @@ public final class LookAtHud {
             width = Math.max(width, font.width(line));
         }
         if (info.tool != null) {
-            width = Math.max(width, font.width(info.tool) + 4 + font.width(toolState(info)) + 8);
+            width = Math.max(width, font.width(info.tool) + 4 + font.width(toolState(info)));
         }
         if (info.maxHealth > 0) {
             width = Math.max(width, healthWidth(font, info));
@@ -241,7 +241,7 @@ public final class LookAtHud {
         if (showMod(info)) {
             width = Math.max(width, font.width(QE.modName(info.modId)));
         }
-        return 8 + iconSpace + width + 8;
+        return 5 + iconSpace + width + 6;
     }
 
     public static int height(Info info) {
@@ -265,16 +265,16 @@ public final class LookAtHud {
     public static void draw(GuiGraphicsExtractor graphics, Font font, Info info, int x, int y, int width, float opacity) {
         int height = height(info);
         if (opacity > 0.01f) {
-            graphics.fill(x + 2, y + 2, x + width + 2, y + height + 2, Ui.withAlpha(0x000000, 0.31f * opacity));
-            Ui.panel(graphics, x, y, width, height, Ui.withAlpha(Palette.HUD_PANEL, 0.88f * opacity), Ui.withAlpha(Palette.HUD_BORDER, opacity));
+            int tint = ARGB.white(Math.min(1f, opacity));
+            graphics.blitSprite(RenderPipelines.GUI_TEXTURED, TOOLTIP_BACKGROUND, x - 9, y - 9, width + 18, height + 18, tint);
+            graphics.blitSprite(RenderPipelines.GUI_TEXTURED, TOOLTIP_FRAME, x - 9, y - 9, width + 18, height + 18, tint);
         }
-        graphics.fill(x, y, x + 2, y + height, info.accent);
-        graphics.enableScissor(x + 2, y + 1, x + width - 1, y + height - 1);
+        graphics.enableScissor(x + 1, y + 1, x + width - 1, y + height - 1);
         boolean hasIcon = !info.icon.isEmpty();
         if (hasIcon) {
-            graphics.item(info.icon, x + 6, y + 5);
+            graphics.item(info.icon, x + 5, y + 5);
         }
-        int textX = x + 6 + (hasIcon ? 20 : 2);
+        int textX = x + 5 + (hasIcon ? 20 : 0);
         int lineY = y + 5;
         graphics.text(font, info.title, textX, lineY, Palette.TEXT_BRIGHT, true);
         lineY += LINE + 1;
@@ -284,10 +284,7 @@ public final class LookAtHud {
         }
         if (info.tool != null) {
             graphics.text(font, info.tool, textX, lineY, Palette.TEXT, true);
-            Component state = toolState(info);
-            int pillX = textX + font.width(info.tool) + 4;
-            Ui.pill(graphics, font, state, pillX, lineY - 2, info.toolOk ? 0xFF1E5631 : 0xFF5A1E24,
-                    info.toolOk ? Palette.SUCCESS : 0xFFFF8A80);
+            graphics.text(font, toolState(info), textX + font.width(info.tool) + 4, lineY, info.toolOk ? Palette.SUCCESS : Palette.DANGER, true);
             lineY += LINE;
         }
         if (info.maxHealth > 0) {
@@ -299,7 +296,7 @@ public final class LookAtHud {
             if (info.armor > 0) {
                 int ax = hx + font.width(hearts) + 8;
                 graphics.blitSprite(RenderPipelines.GUI_TEXTURED, ARMOR, ax, lineY - 1, 9, 9);
-                graphics.text(font, Integer.toString(info.armor), ax + 11, lineY, 0xFFCFD8E6, true);
+                graphics.text(font, Integer.toString(info.armor), ax + 11, lineY, Palette.TEXT, true);
             }
             lineY += LINE;
         }
@@ -309,14 +306,13 @@ public final class LookAtHud {
         }
         graphics.disableScissor();
         if (info.progress >= 0) {
-            Ui.bar(graphics, x + 2, y + height - 3, width - 3, 2, Math.min(1f, info.progress), Palette.CYAN, Palette.HUD_TRACK);
+            Ui.bar(graphics, x + 3, y + height - 4, width - 6, 2, Math.min(1f, info.progress), Palette.TEXT_BRIGHT, Palette.HUD_TRACK);
         }
     }
 
     public static final class Info {
         private final Component title;
         private final ItemStack icon;
-        private final int accent;
         private final List<Component> lines = new ArrayList<>();
         private Component tool;
         private boolean toolOk;
@@ -326,10 +322,9 @@ public final class LookAtHud {
         private int armor;
         private float progress = -1f;
 
-        private Info(Component title, ItemStack icon, int accent) {
+        private Info(Component title, ItemStack icon) {
             this.title = title;
             this.icon = icon == null ? ItemStack.EMPTY : icon;
-            this.accent = accent;
         }
     }
 }

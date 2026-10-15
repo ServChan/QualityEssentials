@@ -16,7 +16,15 @@
     "ChatComponentMixin",
     "ChatComponentAccessor",
     "ChatScreenMixin",
-    "ChatScreenAccessor"
+    "ChatScreenAccessor",
+    "BookEditScreenAccessor",
+    "BookViewScreenAccessor",
+    "BookSignScreenAccessor",
+    "MultiLineEditBoxMixin",
+    "MultilineTextFieldAccessor",
+    "AbstractSignEditScreenAccessor",
+    "MinecraftPickMixin",
+    "ScreenStateMixin"
   ],
   "injectors": {
     "defaultRequire": 1
