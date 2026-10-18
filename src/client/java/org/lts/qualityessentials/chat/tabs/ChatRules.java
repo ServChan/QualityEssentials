@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public final class ChatRules {
-    public static final int VERSION = 4;
+    public static final int VERSION = 5;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
     private ChatRules() {
@@ -24,6 +24,10 @@ public final class ChatRules {
                 "(?i)^\\s*\\[X\\]",
                 "^<[A-Za-z0-9_]{3,16}>\\s",
                 "(?U)^\\W*(?:\\[[^\\]]{1,32}\\]\\s*)*(?:\\S{1,2}\\s+)?[A-Za-z0-9_]{3,16}(?:\\s+\\S{1,3})?\\s*:\\s"));
+        data.groups.add(group("global",
+                "(?U)^\\s*(?:\\[X\\]\\s*)?(?:\\x{A418}|G)\\s*\\|"));
+        data.groups.add(group("local",
+                "(?U)^\\s*(?:\\[X\\]\\s*)?(?:\\x{A419}|L)\\s*\\|"));
         data.groups.add(group("private",
                 "(?iu)личное сообщение",
                 "(?iuU)(?:->|→)\\s*(?:вы|вам|мне|я|me|you)(?:\\W|$)",
@@ -58,6 +62,8 @@ public final class ChatRules {
                 "(?iU)^\\W*\\[server:"));
         data.tabs.add(tab("all", List.of(TabRules.EVERYTHING), List.of()));
         data.tabs.add(tab("talk", List.of("chat", "private"), List.of("anticheat", "moderation", "spy", "coreprotect", "noise")));
+        data.tabs.add(tab("global", List.of("global"), List.of("anticheat", "moderation", "spy", "coreprotect", "noise")));
+        data.tabs.add(tab("local", List.of("local"), List.of("anticheat", "moderation", "spy", "coreprotect", "noise")));
         data.tabs.add(tab("private", List.of("private"), List.of()));
         data.tabs.add(tab("joins", List.of("joins"), List.of()));
         data.tabs.add(tab("staff", List.of("anticheat", "moderation", "spy", "coreprotect"), List.of()));

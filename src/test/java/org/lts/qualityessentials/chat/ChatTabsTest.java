@@ -25,7 +25,7 @@ class ChatTabsTest {
     @Test
     void defaultsCompileCleanly() {
         assertTrue(PROBLEMS.isEmpty(), PROBLEMS.toString());
-        assertEquals(5, RULES.size());
+        assertEquals(7, RULES.size());
         assertTrue(RULES.showsEverything(RULES.indexOf("all")));
         assertFalse(RULES.showsEverything(RULES.indexOf("talk")));
     }
@@ -71,6 +71,27 @@ class ChatTabsTest {
         assertTrue(in("talk", "[X] \ua418 | [skyimpossible head]\ua41b skyimpossible: а че в чат пишешь"));
         assertTrue(in("talk", "[X]\ufffcLTS_Server\ud83d\udc09: Ну какой гад воду на спавне разлил"));
         assertEquals("(vulcan)", TabRules.normalize("\u276a\u1d20\u1d1c\u029f\u1d04\u1d00\u0274\u276b"));
+    }
+
+    @Test
+    void globalAndLocalAreSplitByChannelIcon() {
+        String global = "[X] ꐘ | [Heromattt head]ꐛ Heromattt ✦: Найму человека разобрать ферму";
+        String local = "[X] ꐙ | [bob head]ꐛ bob: цена: 28 аров";
+        String plainGlobal = "ꐘ | Steve: всем привет";
+        String other = "[X] ꐣ | sunshinebob: Алекс, ты тут?";
+        assertTrue(in("global", global));
+        assertTrue(in("global", plainGlobal));
+        assertTrue(in("global", "[X] G |  VLAD666AD: как баннеры на карте установить?"));
+        assertFalse(in("local", global));
+        assertTrue(in("local", local));
+        assertFalse(in("global", local));
+        for (String line : List.of(global, local, other)) {
+            assertTrue(in("talk", line), line);
+        }
+        assertFalse(in("global", other));
+        assertFalse(in("local", other));
+        assertFalse(in("global", "ꐥ  [Red_yozh head]Red_yozh -> Teminick: хай"));
+        assertFalse(in("local", "[] Поблизости нет никого, кому можно написать."));
     }
 
     @Test
