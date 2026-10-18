@@ -3,7 +3,7 @@
 [![Minecraft Version](https://img.shields.io/badge/Minecraft-26.3-brightgreen?style=flat-square&logo=minecraft)](README.md)
 [![Platform](https://img.shields.io/badge/Platform-Fabric-blue?style=flat-square&logo=fabric)](README.md)
 [![Java Target](https://img.shields.io/badge/Java-25-orange?style=flat-square&logo=openjdk)](README.md)
-[![Mod Version](https://img.shields.io/badge/Version-1.1.1-purple?style=flat-square)](README.md)
+[![Mod Version](https://img.shields.io/badge/Version-1.1.2-purple?style=flat-square)](README.md)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 Quality of life in one mod: food, a what-am-I-looking-at panel, effect timers, armor and riding HUDs, performance overlay, shulker previews, a chat section, books, signs and a keyboard map. Every module can be turned off and steps aside when the original mod is installed.
@@ -95,7 +95,7 @@ InfoMod открывает схему клавиатуры через `QualityEs
 ### Установка
 
 1. **Fabric Loader** `0.19.3+` и **Fabric API**.
-2. Скопируйте `quality-essentials-1.1.1.jar` из `build/libs/` в папку `mods/`.
+2. Скопируйте `quality-essentials-1.1.2.jar` из `build/libs/` в папку `mods/`.
 3. **Mod Menu** — опционально, открывает экран настроек.
 
 **Требования:** Minecraft `26.3` · Java `25` · только клиент.
@@ -106,7 +106,7 @@ InfoMod открывает схему клавиатуры через `QualityEs
 .\gradlew.bat clean build
 ```
 
-Готовый JAR: `build/libs/quality-essentials-1.1.1.jar`.
+Готовый JAR: `build/libs/quality-essentials-1.1.2.jar`.
 
 Игровой тест:
 
@@ -205,7 +205,7 @@ InfoMod opens the keyboard map through `QualityEssentialsClient.createKeyboardSc
 ### Installation
 
 1. **Fabric Loader** `0.19.3+` and **Fabric API**.
-2. Copy `quality-essentials-1.1.1.jar` from `build/libs/` into `mods/`.
+2. Copy `quality-essentials-1.1.2.jar` from `build/libs/` into `mods/`.
 3. **Mod Menu** is optional and opens the settings screen.
 
 **Requirements:** Minecraft `26.3` · Java `25` · client-only.
@@ -216,7 +216,7 @@ InfoMod opens the keyboard map through `QualityEssentialsClient.createKeyboardSc
 .\gradlew.bat clean build
 ```
 
-Output JAR: `build/libs/quality-essentials-1.1.1.jar`.
+Output JAR: `build/libs/quality-essentials-1.1.2.jar`.
 
 In-game test:
 
