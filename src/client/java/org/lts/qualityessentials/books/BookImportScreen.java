@@ -221,6 +221,9 @@ public final class BookImportScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (getChildAt(event.x(), event.y()).isPresent()) {
+            return super.mouseClicked(event, doubleClick);
+        }
         if (entries != null && !entries.isEmpty() && event.x() >= listX && event.x() < listX + listWidth && event.y() >= listY + 2 && event.y() < listY + listHeight) {
             int index = scroll + (int) ((event.y() - listY - 2) / ROW);
             if (index >= 0 && index < entries.size()) {
