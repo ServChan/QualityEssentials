@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class QEConfig {
-    public static final int CURRENT_VERSION = 2;
+    public static final int CURRENT_VERSION = 3;
     public static final int[] HISTORY_SIZES = {100, 1000, 4096, 16384};
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -81,8 +81,8 @@ public final class QEConfig {
     public String chatTimestamps = ChatTimestamps.OFF.name();
     public boolean chatTimestampsHover = true;
     public boolean chatCollapse = true;
-    public boolean chatFixWords = true;
-    public boolean chatFixCommands = true;
+    public boolean chatFixWords = false;
+    public boolean chatFixCommands = false;
     public boolean chatTabs = true;
     public String chatTab = "all";
     public boolean chatLongMessages = true;
@@ -297,6 +297,10 @@ public final class QEConfig {
         layouts = cleanedLayouts;
         if (configVersion < 2) {
             migrateEquipmentAnchor();
+        }
+        if (configVersion < 3) {
+            chatFixWords = false;
+            chatFixCommands = false;
         }
         configVersion = CURRENT_VERSION;
         return this;

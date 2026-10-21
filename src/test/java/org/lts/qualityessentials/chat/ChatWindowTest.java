@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ChatWindowTest {
@@ -52,9 +53,35 @@ class ChatWindowTest {
         assertEquals(QEConfig.ChatSize.FULL, config.chatHeightSize());
         assertEquals(QEConfig.ChatTimestamps.SECONDS, config.chatTimestampStyle());
         assertEquals(List.of("ghbdtn"), config.chatLayoutIgnore);
-        config.chatFixWords = false;
+        config.chatFixWords = true;
         config.resetModule(Module.CHAT);
-        assertTrue(config.chatFixWords);
+        assertFalse(config.chatFixWords);
         assertEquals(QEConfig.ChatSize.NORMAL, config.chatHeightSize());
+    }
+
+    @Test
+    void layoutFixTurnsOffInOldConfigs(@TempDir Path dir) throws Exception {
+        Path file = dir.resolve("qualityessentials.json");
+        Files.writeString(file, "{\"configVersion\":2,\"chatFixWords\":true,\"chatFixCommands\":true}");
+        QEConfig config = QEConfig.read(file);
+        assertFalse(config.chatFixWords);
+        assertFalse(config.chatFixCommands);
+        assertEquals(QEConfig.CURRENT_VERSION, config.configVersion);
+    }
+
+    @Test
+    void layoutFixStaysOnOnceChosen(@TempDir Path dir) throws Exception {
+        Path file = dir.resolve("qualityessentials.json");
+        Files.writeString(file, "{\"configVersion\":" + QEConfig.CURRENT_VERSION + ",\"chatFixWords\":true,\"chatFixCommands\":true}");
+        QEConfig config = QEConfig.read(file);
+        assertTrue(config.chatFixWords);
+        assertTrue(config.chatFixCommands);
+    }
+
+    @Test
+    void layoutFixIsOffByDefault() {
+        QEConfig config = new QEConfig().sanitize();
+        assertFalse(config.chatFixWords);
+        assertFalse(config.chatFixCommands);
     }
 }
