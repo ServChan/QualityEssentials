@@ -109,6 +109,12 @@ publishing {
     }
 }
 
+if (providers.gradleProperty("shulkersOnly").isPresent()) {
+    tasks.named("runClientGameTest") {
+        systemProperty "qualityessentials.shulkersOnly", "true"
+    }
+}
+
 if (providers.gradleProperty("uiOnly").isPresent()) {
     tasks.named("runClientGameTest") {
         systemProperty "qualityessentials.uiOnly", "true"

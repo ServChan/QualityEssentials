@@ -6,6 +6,7 @@
     "HudMixin",
     "LoadingOverlayMixin",
     "MultiPlayerGameModeAccessor",
+    "MultiPlayerGameModeMixin",
     "BossHealthOverlayAccessor",
     "ClientPacketListenerMixin",
     "HudInvoker",

@@ -10,6 +10,7 @@ import org.lts.qualityessentials.chat.ChatSessions;
 import org.lts.qualityessentials.effects.EffectTimerHud;
 import org.lts.qualityessentials.food.FoodHud;
 import org.lts.qualityessentials.mount.MountHud;
+import org.lts.qualityessentials.shulker.PlacedShulkers;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -25,6 +26,7 @@ public abstract class HudMixin {
     @Inject(method = "onDisconnected", at = @At("HEAD"))
     private void qualityessentials$saveChat(CallbackInfo ci) {
         ChatSessions.onDisconnected(Minecraft.getInstance());
+        PlacedShulkers.onDisconnected();
     }
 
     @Inject(method = "extractEffects", at = @At("TAIL"))

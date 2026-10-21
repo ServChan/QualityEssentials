@@ -26,7 +26,7 @@ Quality of life in one mod: food, a what-am-I-looking-at panel, effect timers, a
 | Броня и инструменты | Прочность брони и предметов в руках, стрелы для лука и арбалета, сколько всего блоков в инвентаре; три положения | Armor HUD, Armor Durability HUD |
 | Езда | Полоса сытости игрока не пропадает при езде, панель животного: здоровье, максимальная скорость, высота прыжка, текущая скорость | Better Mount HUD |
 | Производительность | Оверлей FPS (и 1% low), пинг и оценка TPS сервера на сервере, настоящие TPS и MSPT в одиночной игре, память, сущности, координаты (скрываются при reduced debug info), время суток с номером дня (синим, когда можно спать) и погода на месте игрока | FPS Display |
-| Шалкеры | При зажатом Shift содержимое шалкера и любого предмета-контейнера сеткой в подсказке (без Shift — строка-подсказка с числом предметов), цветная полоска по цвету ящика, режим сводки с объединением одинаковых предметов | Shulker Box Tooltip |
+| Шалкеры | При зажатом Shift содержимое шалкера и любого предмета-контейнера сеткой в подсказке (без Shift — строка-подсказка с числом предметов), цветная полоска по цвету ящика, режим сводки с объединением одинаковых предметов. Поставленный шалкер: наведите на него и зажмите Shift — окно покажет, что в нём было, когда вы его последний раз открывали или ставили (сервер не присылает клиенту содержимое ящика, поэтому мод запоминает его сам; чужие ящики остаются неизвестными, пока вы их не откроете) | Shulker Box Tooltip |
 | Новые предметы | Маленькая звёздочка на только что подобранных предметах в инвентаре, исчезает при наведении | Item Highlighter |
 | Подробности о предмете | С зажатым Shift подсказка возвращает строки, которые сервер спрятал компонентом `tooltip_display` (зачарования, атрибуты и прочее), и показывает блок подробностей: ID, модель (`item_model`), прочность с процентами, цену ремонта в наковальне, редкость, размер стака, что скрыто сервером, данные сервера из `custom_data` (там плагины хранят ID своих предметов) и компоненты, которые сервер добавил или убрал. Без Shift внизу строка «Shift — скрытое (N) и подробности», если что-то спрятано | — |
 | Скриншоты | Кнопки «Открыть», «Папка» и «Копировать путь» у сообщения о сохранённом скриншоте | — |
@@ -88,7 +88,7 @@ Quality of life in one mod: food, a what-am-I-looking-at panel, effect timers, a
 
 ### Настройки
 
-Экран **Mod Menu → QualityEssentials** (или своя клавиша) собран на ванильных вкладках и строках: каждый модуль включается отдельно, там же кнопки редактора HUD и «Правила вкладок» чата. Общий файл `config/qualityessentials.json`; чат после перезахода — `config/qualityessentials/chat/`, правила вкладок — `config/qualityessentials/chat_tabs.json`, книги — `config/qualityessentials/books/`.
+Экран **Mod Menu → QualityEssentials** (или своя клавиша) собран на ванильных вкладках и строках: каждый модуль включается отдельно, там же кнопки редактора HUD и «Правила вкладок» чата. Общий файл `config/qualityessentials.json`; чат после перезахода — `config/qualityessentials/chat/`, запомненные шалкеры — `config/qualityessentials/shulkers/` (отдельно для каждого сервера и мира, до 4096 ящиков), правила вкладок — `config/qualityessentials/chat_tabs.json`, книги — `config/qualityessentials/books/`.
 
 InfoMod открывает схему клавиатуры через `QualityEssentialsClient.createKeyboardScreen(Screen)`.
 
@@ -136,7 +136,7 @@ The code is written from scratch; nothing is copied from the original mods. The 
 | Armor and tools | Durability of armor and held items, arrows for bows and crossbows, how many blocks of a kind are in the inventory; three positions | Armor HUD, Armor Durability HUD |
 | Riding | The player's hunger bar stays visible while riding; a mount panel: health, top speed, jump height, current speed | Better Mount HUD |
 | Performance | FPS overlay (and 1% low), ping and an estimated server TPS on servers, real TPS and MSPT in singleplayer, memory, entities, coordinates (hidden with reduced debug info), time of day with the day number (blue when you can sleep) and the weather at the player | FPS Display |
-| Shulkers | With Shift held, the contents of a shulker box or any container item as a grid in the tooltip (without Shift, a hint line with the item count), a stripe in the box colour, a summary mode that merges identical items | Shulker Box Tooltip |
+| Shulkers | With Shift held, the contents of a shulker box or any container item as a grid in the tooltip (without Shift, a hint line with the item count), a stripe in the box colour, a summary mode that merges identical items. Placed boxes: look at one and hold Shift, and a window shows what it held when you last opened or placed it (the server never sends box contents to the client, so the mod remembers them itself; other players' boxes stay unknown until you open them) | Shulker Box Tooltip |
 | New items | A small star on just-picked-up items in the inventory, gone on hover | Item Highlighter |
 | Item details | With Shift held, the tooltip brings back lines the server hid with the `tooltip_display` component (enchantments, attributes and more) and shows a details block: ID, model (`item_model`), durability with percent, anvil repair cost, rarity, stack size, what the server hid, server data from `custom_data` (where plugins keep their item IDs) and the components the server added or removed. Without Shift, a "Shift: show hidden lines (N) and details" line appears at the bottom when something is hidden | — |
 | Screenshots | Open, Folder and Copy path buttons on the saved-screenshot message | — |
@@ -198,7 +198,7 @@ Keys are bound in Options → Controls, category QualityEssentials. Book and sig
 
 ### Configuration
 
-The **Mod Menu → QualityEssentials** screen (or its own key) is built on vanilla tabs and option rows: every module is switched separately, and the HUD editor and chat Tab rules buttons are there too. Main file `config/qualityessentials.json`; restored chat in `config/qualityessentials/chat/`, tab rules in `config/qualityessentials/chat_tabs.json`, books in `config/qualityessentials/books/`.
+The **Mod Menu → QualityEssentials** screen (or its own key) is built on vanilla tabs and option rows: every module is switched separately, and the HUD editor and chat Tab rules buttons are there too. Main file `config/qualityessentials.json`; restored chat in `config/qualityessentials/chat/`, remembered shulker boxes in `config/qualityessentials/shulkers/` (per server and world, up to 4,096 boxes), tab rules in `config/qualityessentials/chat_tabs.json`, books in `config/qualityessentials/books/`.
 
 InfoMod opens the keyboard map through `QualityEssentialsClient.createKeyboardScreen(Screen)`.
 

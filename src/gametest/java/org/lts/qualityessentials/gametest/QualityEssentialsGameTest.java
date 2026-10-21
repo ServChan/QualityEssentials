@@ -10,16 +10,22 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.BookEditScreen;
 import net.minecraft.client.gui.screens.inventory.BookViewScreen;
+import net.minecraft.client.gui.screens.inventory.ShulkerBoxScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.client.resources.language.I18n;
+import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.WritableBookContent;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignTextSlot;
+import net.minecraft.world.phys.Vec3;
 import org.lts.qualityessentials.books.BookFiles;
 import org.lts.qualityessentials.books.BookImportScreen;
 import org.lts.qualityessentials.core.HudElement;
@@ -32,6 +38,7 @@ import org.lts.qualityessentials.gui.SettingsScreen;
 import org.lts.qualityessentials.keyboard.KeyboardModule;
 import org.lts.qualityessentials.mixin.AbstractSignEditScreenAccessor;
 import org.lts.qualityessentials.mixin.BookEditScreenAccessor;
+import org.lts.qualityessentials.shulker.PlacedShulkers;
 import org.lts.qualityessentials.text.FormatCode;
 
 import java.nio.file.Files;
@@ -56,6 +63,11 @@ public final class QualityEssentialsGameTest implements FabricClientGameTest {
             world.getConnection().waitForChunksRender();
             if (Boolean.getBoolean("qualityessentials.uiOnly")) {
                 interfaceShots(context, world);
+                return;
+            }
+            if (Boolean.getBoolean("qualityessentials.shulkersOnly")) {
+                view(context, 1280, 720, 2);
+                placedShulkers(context, world);
                 return;
             }
             view(context, 1280, 720, 2);
@@ -194,6 +206,75 @@ public final class QualityEssentialsGameTest implements FabricClientGameTest {
         check(lines[0].equals("&a&lМагазин") && lines[1].equals("&7Алмазы"), "new sign should be filled: " + List.of(lines));
         shot(context, "12_sign_autofilled");
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        context.waitTicks(3);
+    }
+
+    private void placedShulkers(ClientGameTestContext context, TestSingleplayerContext world) {
+        BlockPos feet = context.computeOnClient(client -> client.player.blockPosition());
+        int x = feet.getX();
+        int y = feet.getY();
+        int z = feet.getZ();
+        world.getServer().runCommand("fill " + (x - 3) + " " + y + " " + (z - 3) + " " + (x + 3) + " " + (y + 3) + " " + (z + 3) + " minecraft:air");
+        world.getServer().runCommand("fill " + (x - 3) + " " + (y - 1) + " " + (z - 3) + " " + (x + 3) + " " + (y - 1) + " " + (z + 3) + " minecraft:stone");
+        world.getServer().runCommand("item replace entity @p weapon.mainhand with minecraft:light_blue_shulker_box[container=["
+                + "{slot:0,item:{id:\"minecraft:diamond\",count:24}},{slot:1,item:{id:\"minecraft:iron_ingot\",count:64}},"
+                + "{slot:13,item:{id:\"minecraft:ender_pearl\",count:16}}],custom_name=\"Склад\"]");
+        BlockPos placed = new BlockPos(x, y, z + 2);
+        BlockPos unknown = new BlockPos(x + 2, y, z + 2);
+        world.getServer().runCommand("setblock " + unknown.getX() + " " + unknown.getY() + " " + unknown.getZ()
+                + " minecraft:red_shulker_box{Items:[{Slot:4b,id:\"minecraft:emerald\",count:5}]}");
+        world.getConnection().waitForClientboundPackets();
+        context.waitFor(client -> id(client.player.getMainHandItem().getItem()).equals("light_blue_shulker_box"), 100);
+        context.waitFor(client -> id(client.level.getBlockState(unknown).getBlock()).equals("red_shulker_box"), 100);
+        look(context, new Vec3(x + 0.5, y, z + 2.5));
+        context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
+        context.waitFor(client -> id(client.level.getBlockState(placed).getBlock()).equals("light_blue_shulker_box"), 100);
+        context.waitTicks(3);
+        check(context.computeOnClient(client -> PlacedShulkers.lookup(client.level, placed) != null), "placed box should be remembered");
+        look(context, Vec3.atCenterOf(placed));
+        shot(context, "30_placed_shulker_hint");
+        context.getInput().holdShift();
+        context.waitTicks(3);
+        shot(context, "31_placed_shulker_shift");
+        look(context, Vec3.atCenterOf(unknown));
+        context.waitTicks(3);
+        check(context.computeOnClient(client -> PlacedShulkers.lookup(client.level, unknown) == null), "box placed by a command should be unknown");
+        shot(context, "32_unknown_shulker_shift");
+        context.getInput().releaseShift();
+        context.waitTicks(2);
+        context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
+        context.waitFor(client -> client.gui.screen() instanceof ShulkerBoxScreen, 100);
+        context.waitTicks(5);
+        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        context.waitTicks(3);
+        boolean emerald = context.computeOnClient(client -> {
+            var entry = PlacedShulkers.lookup(client.level, unknown);
+            return entry != null && entry.contents().items().get(4).is(Items.EMERALD) && entry.contents().items().get(4).getCount() == 5;
+        });
+        check(emerald, "opened box should remember its emeralds");
+        context.getInput().holdShift();
+        context.waitTicks(3);
+        shot(context, "33_opened_shulker_shift");
+        context.getInput().releaseShift();
+        world.getServer().runCommand("setblock " + placed.getX() + " " + placed.getY() + " " + placed.getZ() + " minecraft:air");
+        world.getConnection().waitForClientboundPackets();
+        context.waitTicks(45);
+        world.getServer().runCommand("setblock " + placed.getX() + " " + placed.getY() + " " + placed.getZ() + " minecraft:light_blue_shulker_box");
+        world.getConnection().waitForClientboundPackets();
+        context.waitFor(client -> id(client.level.getBlockState(placed).getBlock()).equals("light_blue_shulker_box"), 100);
+        check(context.computeOnClient(client -> PlacedShulkers.lookup(client.level, placed) == null), "broken box should be forgotten");
+    }
+
+    private static String id(Block block) {
+        return BuiltInRegistries.BLOCK.getKey(block).getPath();
+    }
+
+    private static String id(Item item) {
+        return BuiltInRegistries.ITEM.getKey(item).getPath();
+    }
+
+    private static void look(ClientGameTestContext context, Vec3 target) {
+        context.runOnClient(client -> client.player.lookAt(EntityAnchorArgument.Anchor.EYES, target));
         context.waitTicks(3);
     }
 

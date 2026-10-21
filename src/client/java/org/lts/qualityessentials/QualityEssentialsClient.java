@@ -22,6 +22,8 @@ import org.lts.qualityessentials.keyboard.KeyboardModule;
 import org.lts.qualityessentials.lookat.LookAtHud;
 import org.lts.qualityessentials.mount.MountHud;
 import org.lts.qualityessentials.newitems.NewItemTracker;
+import org.lts.qualityessentials.shulker.PlacedShulkerHud;
+import org.lts.qualityessentials.shulker.PlacedShulkers;
 import org.lts.qualityessentials.shulker.ShulkerPreview;
 import org.lts.qualityessentials.signs.SignModule;
 
@@ -51,6 +53,8 @@ public final class QualityEssentialsClient implements ClientModInitializer {
                 (graphics, tickCounter) -> EquipmentHud.extract(graphics));
         HudElementRegistry.attachElementAfter(VanillaHudElements.BOSS_BAR, Identifier.fromNamespaceAndPath(MOD_ID, "look_at"),
                 (graphics, tickCounter) -> LookAtHud.extract(graphics));
+        HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, Identifier.fromNamespaceAndPath(MOD_ID, "placed_shulker"),
+                (graphics, tickCounter) -> PlacedShulkerHud.extract(graphics));
         HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Identifier.fromNamespaceAndPath(MOD_ID, "mount"),
                 (graphics, tickCounter) -> MountHud.extract(graphics));
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "stats"), (graphics, tickCounter) -> StatsHud.extract(graphics));
@@ -59,6 +63,7 @@ public final class QualityEssentialsClient implements ClientModInitializer {
             ChatModule.tick(minecraft);
             MountHud.tick(minecraft);
             NewItemTracker.tick(minecraft);
+            PlacedShulkers.tick(minecraft);
             while (editorKey.consumeClick()) {
                 if (minecraft.gui.screen() == null) {
                     minecraft.gui.setScreen(new HudEditorScreen(null, null));

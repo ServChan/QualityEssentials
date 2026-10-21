@@ -23,6 +23,7 @@ import net.minecraft.world.entity.npc.villager.VillagerData;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.block.state.properties.Property;
@@ -36,6 +37,7 @@ import org.lts.qualityessentials.gui.Palette;
 import org.lts.qualityessentials.gui.Ui;
 import org.lts.qualityessentials.mixin.BossHealthOverlayAccessor;
 import org.lts.qualityessentials.mixin.MultiPlayerGameModeAccessor;
+import org.lts.qualityessentials.shulker.PlacedShulkers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -134,6 +136,10 @@ public final class LookAtHud {
                     }
                 }
             }
+        }
+        if (state.getBlock() instanceof ShulkerBoxBlock && !minecraft.hasShiftDown() && PlacedShulkers.enabled()
+                && PlacedShulkers.lookup(minecraft.level, pos) != null) {
+            info.lines.add(Component.translatable("qualityessentials.lookat.shulker_shift").withStyle(ChatFormatting.GRAY));
         }
         if (config.lookAtShowHarvest && state.requiresCorrectToolForDrops()) {
             info.tool = Component.translatable("qualityessentials.lookat.tool", Component.translatable(toolKey(state)));

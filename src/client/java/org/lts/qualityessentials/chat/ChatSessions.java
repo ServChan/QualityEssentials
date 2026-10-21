@@ -8,21 +8,19 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.client.multiplayer.chat.GuiMessageSource;
 import net.minecraft.client.multiplayer.chat.GuiMessageTag;
-import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.RegistryOps;
 import org.lts.qualityessentials.QualityEssentialsClient;
 import org.lts.qualityessentials.core.QEConfig;
+import org.lts.qualityessentials.core.WorldScope;
 import org.lts.qualityessentials.mixin.ChatComponentAccessor;
 
 import java.io.IOException;
@@ -31,12 +29,8 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.HexFormat;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -224,32 +218,10 @@ public final class ChatSessions {
     }
 
     private static String scope(Minecraft minecraft) {
-        ServerData server = minecraft.getCurrentServer();
-        if (server != null && server.ip != null && !server.ip.isBlank()) {
-            return "server:" + server.ip.trim().toLowerCase(Locale.ROOT);
-        }
-        IntegratedServer integrated = minecraft.getSingleplayerServer();
-        if (integrated != null) {
-            return "world:" + integrated.getWorldData().getLevelName();
-        }
-        return null;
+        return WorldScope.of(minecraft);
     }
 
     static Path file(String scope) {
-        String readable = scope.replaceAll("[^a-zA-Z0-9.-]", "_");
-        if (readable.length() > 64) {
-            readable = readable.substring(0, 64);
-        }
-        return FabricLoader.getInstance().getConfigDir().resolve("qualityessentials").resolve("chat")
-                .resolve(readable + "_" + hash(scope) + ".json");
-    }
-
-    private static String hash(String scope) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(scope.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest, 0, 6);
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException(exception);
-        }
+        return WorldScope.file("chat", scope);
     }
 }

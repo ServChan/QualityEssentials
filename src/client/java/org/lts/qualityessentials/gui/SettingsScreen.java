@@ -327,6 +327,7 @@ public class SettingsScreen extends Screen {
                         new Choice("qualityessentials.option.shulker.grid", c -> c.shulkerCompact = false, c -> !c.shulkerCompact),
                         new Choice("qualityessentials.option.shulker.summary", c -> c.shulkerCompact = true, c -> c.shulkerCompact))));
                 list.add(toggle("qualityessentials.option.shulker.hide_text", c -> c.shulkerHideText, c -> c.shulkerHideText = !c.shulkerHideText));
+                list.add(toggle("qualityessentials.option.shulker.placed", c -> c.shulkerPlaced, c -> c.shulkerPlaced = !c.shulkerPlaced));
             }
             case ITEM_DETAILS -> {
                 list.add(toggle("qualityessentials.option.item_details.block", c -> c.itemDetailsBlock, c -> c.itemDetailsBlock = !c.itemDetailsBlock));

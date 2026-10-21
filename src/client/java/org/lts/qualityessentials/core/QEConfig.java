@@ -63,6 +63,7 @@ public final class QEConfig {
 
     public boolean shulkerHideText = true;
     public boolean shulkerCompact = false;
+    public boolean shulkerPlaced = true;
 
     public boolean itemDetailsHint = true;
     public boolean itemDetailsBlock = true;
@@ -206,6 +207,7 @@ public final class QEConfig {
             case SHULKER -> {
                 shulkerHideText = defaults.shulkerHideText;
                 shulkerCompact = defaults.shulkerCompact;
+                shulkerPlaced = defaults.shulkerPlaced;
             }
             case ITEM_DETAILS -> {
                 itemDetailsHint = defaults.itemDetailsHint;

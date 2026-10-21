@@ -56,12 +56,15 @@ public final class ShulkerPreview {
         }
         Block block = Block.byItem(stack.getItem());
         boolean shulkerBox = block instanceof ShulkerBoxBlock;
-        int accent = Palette.BORDER_STRONG;
+        return Optional.of(build(contents.itemCopies().toList(), contents.size(), shulkerBox, accent(block), QE.config().shulkerCompact));
+    }
+
+    static int accent(Block block) {
         if (block instanceof ShulkerBoxBlock box) {
             DyeColor color = box.getColor();
-            accent = color == null ? UNDYED : 0xFF000000 | color.getTextureDiffuseColor();
+            return color == null ? UNDYED : 0xFF000000 | color.getTextureDiffuseColor();
         }
-        return Optional.of(build(contents.itemCopies().toList(), contents.size(), shulkerBox, accent, QE.config().shulkerCompact));
+        return Palette.BORDER_STRONG;
     }
 
     public static ShulkerTooltip sample(QEConfig config) {
