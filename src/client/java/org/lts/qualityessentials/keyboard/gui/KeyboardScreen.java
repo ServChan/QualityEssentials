@@ -9,6 +9,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.util.FormattedCharSequence;
 import org.lts.qualityessentials.keyboard.ModifierRegistry;
 import org.lts.qualityessentials.keyboard.BindingSnapshot;
 import org.lts.qualityessentials.keyboard.ModifierSource;
@@ -427,10 +428,18 @@ public class KeyboardScreen extends Screen {
         }
         if (waiting != null) {
             Component hint = Component.translatable("qualityessentials.keyboard.waiting", names.get(waiting));
-            int width = this.font.width(hint) + 12;
-            int cx = (x0 + x1) / 2;
-            graphics.fill(cx - width / 2, y0 - 3, cx + width / 2, y0 + 9, Palette.ACCENT_DARK);
-            graphics.text(this.font, hint, cx - width / 2 + 6, y0 - 1, Palette.TEXT_BRIGHT, false);
+            List<FormattedCharSequence> lines = this.font.split(hint, Math.max(40, this.width - 28));
+            int width = 0;
+            for (FormattedCharSequence line : lines) {
+                width = Math.max(width, this.font.width(line));
+            }
+            width += 12;
+            int cx = Math.max(8 + width / 2, Math.min(this.width - 8 - width / 2, (x0 + x1) / 2));
+            int top = Math.max(0, y0 - 3 - (lines.size() - 1) * 10);
+            graphics.fill(cx - width / 2, top, cx + width / 2, top + 12 + (lines.size() - 1) * 10, Palette.ACCENT_DARK);
+            for (int i = 0; i < lines.size(); i++) {
+                graphics.text(this.font, lines.get(i), cx - width / 2 + 6, top + 2 + i * 10, Palette.TEXT_BRIGHT, false);
+            }
         }
     }
 

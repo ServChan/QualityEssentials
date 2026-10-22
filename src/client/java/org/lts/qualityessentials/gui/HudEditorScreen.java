@@ -27,6 +27,7 @@ public class HudEditorScreen extends Screen {
     private static final int SNAP = 5;
     private static final int ROW_HEIGHT = 24;
     private static final int SLIDER_WIDTH = 104;
+    private static final int MIN_SLIDER_WIDTH = 56;
 
     private final Screen parent;
     private final QEConfig original;
@@ -64,16 +65,17 @@ public class HudEditorScreen extends Screen {
         toolbarY = elementLow ? 30 : this.height - toolbarRows * ROW_HEIGHT - 6;
         int x = 8;
         int y = toolbarY;
+        int sliderWidth = sliderWidth();
         if (selected != null) {
             HudElement element = selected;
             nameX = x;
             x += this.font.width(Component.translatable(element.module().translationKey())) + 10;
-            addRenderableWidget(new LayoutSlider(x, y, SLIDER_WIDTH, "qualityessentials.editor.scale", HudLayout.MIN_SCALE, HudLayout.MAX_SCALE, 0.05f,
+            addRenderableWidget(new LayoutSlider(x, y, sliderWidth, "qualityessentials.editor.scale", HudLayout.MIN_SCALE, HudLayout.MAX_SCALE, 0.05f,
                     working.layout(element).scale, value -> set(element, layout -> layout.scale = HudLayout.clampScale(value))));
-            x += SLIDER_WIDTH + 4;
-            addRenderableWidget(new LayoutSlider(x, y, SLIDER_WIDTH, "qualityessentials.editor.opacity", 0f, 1f, 0.1f,
+            x += sliderWidth + 4;
+            addRenderableWidget(new LayoutSlider(x, y, sliderWidth, "qualityessentials.editor.opacity", 0f, 1f, 0.1f,
                     working.layout(element).opacity, value -> set(element, layout -> layout.opacity = value)));
-            x += SLIDER_WIDTH + 8;
+            x += sliderWidth + 8;
             if (element == HudElement.EQUIPMENT) {
                 Component orientation = Component.translatable(working.equipmentHorizontal
                         ? "qualityessentials.editor.horizontal" : "qualityessentials.editor.vertical");
@@ -136,6 +138,11 @@ public class HudEditorScreen extends Screen {
             width += this.font.width(Component.translatable("qualityessentials.editor.horizontal")) + 18;
         }
         return width + this.font.width(Component.translatable("qualityessentials.editor.reset_one")) + 14;
+    }
+
+    private int sliderWidth() {
+        int spare = this.width - 16 - leftGroupWidth();
+        return spare >= 0 ? SLIDER_WIDTH : Math.max(MIN_SLIDER_WIDTH, SLIDER_WIDTH + spare / 2);
     }
 
     private int rightGroupWidth() {
@@ -249,13 +256,31 @@ public class HudEditorScreen extends Screen {
         graphics.text(this.font, lead, nameX, toolbarY + 6, selected == null ? Palette.TEXT_DIM : Palette.TEXT_BRIGHT, true);
         Component hint = Component.translatable("qualityessentials.editor.hint");
         List<net.minecraft.util.FormattedCharSequence> hintLines = this.font.split(hint, this.width - 24);
-        int hintY = top ? bandY + bandHeight + 6 : 6;
         int hintHeight = hintLines.size() * 10 + 4;
-        graphics.fill(8, hintY - 2, this.width - 8, hintY + hintHeight - 2, Palette.BACKGROUND);
-        for (int i = 0; i < hintLines.size(); i++) {
-            graphics.centeredText(this.font, hintLines.get(i), this.width / 2, hintY + i * 10, Palette.TEXT_DIM);
+        int nearY = top ? bandY + bandHeight + 6 : bandY - hintHeight - 2;
+        int farY = top ? this.height - hintHeight - 4 : 6;
+        int hintY = hintFree(nearY, hintHeight) ? nearY : hintFree(farY, hintHeight) ? farY : -1;
+        if (hintY >= 0) {
+            graphics.fill(8, hintY - 2, this.width - 8, hintY + hintHeight - 2, Palette.BACKGROUND);
+            for (int i = 0; i < hintLines.size(); i++) {
+                graphics.centeredText(this.font, hintLines.get(i), this.width / 2, hintY + i * 10, Palette.TEXT_DIM);
+            }
         }
         super.extractRenderState(graphics, mouseX, mouseY, tickDelta);
+    }
+
+    private boolean hintFree(int hintY, int hintHeight) {
+        int top = hintY - 2;
+        int bottom = hintY + hintHeight - 2;
+        if (top < 0 || bottom > this.height) {
+            return false;
+        }
+        for (HudPlacement.Rect rect : rects.values()) {
+            if (rect.y() < bottom && rect.y() + rect.height() > top && rect.x() < this.width - 8 && rect.x() + rect.width() > 8) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void drawElement(GuiGraphicsExtractor graphics, HudElement element, int mouseX, int mouseY) {
