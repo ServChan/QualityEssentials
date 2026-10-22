@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public final class ChatRules {
-    public static final int VERSION = 5;
+    public static final int VERSION = 6;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
     private ChatRules() {
@@ -25,9 +25,9 @@ public final class ChatRules {
                 "^<[A-Za-z0-9_]{3,16}>\\s",
                 "(?U)^\\W*(?:\\[[^\\]]{1,32}\\]\\s*)*(?:\\S{1,2}\\s+)?[A-Za-z0-9_]{3,16}(?:\\s+\\S{1,3})?\\s*:\\s"));
         data.groups.add(group("global",
-                "(?U)^\\s*(?:\\[X\\]\\s*)?(?:\\x{A418}|G)\\s*\\|"));
+                "(?U)^\\s*(?:\\[X\\]\\s*)?(?:\\x{A419}|G)\\s*\\|"));
         data.groups.add(group("local",
-                "(?U)^\\s*(?:\\[X\\]\\s*)?(?:\\x{A419}|L)\\s*\\|"));
+                "(?U)^\\s*(?:\\[X\\]\\s*)?(?:\\x{A418}|L)\\s*\\|"));
         data.groups.add(group("private",
                 "(?iu)личное сообщение",
                 "(?iuU)(?:->|→)\\s*(?:вы|вам|мне|я|me|you)(?:\\W|$)",

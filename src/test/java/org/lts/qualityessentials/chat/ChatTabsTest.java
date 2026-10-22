@@ -75,9 +75,9 @@ class ChatTabsTest {
 
     @Test
     void globalAndLocalAreSplitByChannelIcon() {
-        String global = "[X] ꐘ | [Heromattt head]ꐛ Heromattt ✦: Найму человека разобрать ферму";
-        String local = "[X] ꐙ | [bob head]ꐛ bob: цена: 28 аров";
-        String plainGlobal = "ꐘ | Steve: всем привет";
+        String global = "[X] ꐙ | [Heromattt head]ꐛ Heromattt ✦: Найму человека разобрать ферму";
+        String local = "[X] ꐘ | [bob head]ꐛ bob: цена: 28 аров";
+        String plainGlobal = "ꐙ | Steve: всем привет";
         String other = "[X] ꐣ | sunshinebob: Алекс, ты тут?";
         assertTrue(in("global", global));
         assertTrue(in("global", plainGlobal));
