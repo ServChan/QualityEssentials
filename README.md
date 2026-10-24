@@ -8,6 +8,8 @@
 
 Quality of life in one mod: food, a what-am-I-looking-at panel, effect timers, armor and riding HUDs, performance overlay, shulker previews, a chat section, books, signs and a keyboard map. Every module can be turned off and steps aside when the original mod is installed.
 
+**Руководство / User guide:** [Русский](docs/USER_GUIDE_RU.md) · [English](docs/USER_GUIDE_EN.md)
+
 ## Русский
 
 ### Что это
