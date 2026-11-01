@@ -29,6 +29,7 @@ Mod version: 1.1.6 · Minecraft 26.3 · Fabric · client-only
 21. [Files](#files)
 22. [FAQ](#faq)
 23. [Building from source](#building-from-source)
+24. [Feature reference](#feature-reference)
 
 ## What it is
 
@@ -420,3 +421,139 @@ On Linux and macOS use `./gradlew`. The jar is `build/libs/quality-essentials-1.
 The in-game test (`.\gradlew.bat runClientGameTest`) opens a book, pastes long colored text, formats a selection, undoes, saves and loads a file, and checks book reading, signs and the settings in 1280×720 and 854×480 windows. Screenshots go to `build/run/clientGameTest/screenshots`.
 
 The layout fix model is built by `tools/layout/build_layout_model.py` from the Minecraft language files and the dictionaries `tools/layout/seed_ru.txt` and `seed_en.txt`. Rebuild the model and run the tests after editing the dictionaries.
+
+## Feature reference
+
+A detailed description of the features, moved here from the README. Step-by-step instructions are in the sections above.
+
+### Shulkers
+
+With Shift held, the contents of a shulker box or any container item as a grid in the tooltip (without Shift, a hint line with the item count), a stripe in the box colour, a summary mode that merges identical items.
+
+Placed boxes: look at one and hold Shift, and a window shows what it held when you last opened or placed it (the server never sends box contents to the client, so the mod remembers them itself; other players' boxes stay unknown until you open them)
+
+### Item details
+
+With Shift held, the tooltip brings back lines the server hid with the `tooltip_display` component (enchantments, attributes and more) and shows a details block: ID, model (`item_model`), durability with percent, anvil repair cost, rarity, stack size, what the server hid, server data from `custom_data` (where plugins keep their item IDs) and the components the server added or removed.
+
+Without Shift, a "Shift: show hidden lines (N) and details" line appears at the bottom when something is hidden
+
+### Chat
+
+This section moved here from Callout: the longer chat history and its restore after rejoining now live in QE, and Callout keeps only alerts and the mention history.
+
+### History
+
+100, 1,000, 4,096 or 16,384 messages (16,384 by default). The list of sent messages, browsed with the arrow keys, has the same limit.
+
+### Restore after rejoining
+
+On leaving a server or a world, the last 1,000 messages are saved to `config/qualityessentials/chat/`, separately for each server address and each singleplayer world. On the next join they go into the history above the new messages, separated by a "Chat from your last visit" line and a grey stripe on the left. The restored chat is shown only in the open chat and never pops up on screen.
+
+### Window size
+
+Width and height: normal, ×1.5, ×2 or Maximum. With Maximum, the vanilla Width and Height sliders in the chat settings stretch to the whole screen. The window never leaves the screen and is rebuilt when the game window is resized.
+
+### Timestamps
+
+None, `12:30` or `12:30:45`. By default the "on hover only" mode is on: the time takes no room in the lines and slides in from the left while the cursor is at the left edge of the open chat; the lines move right smoothly and nothing overlaps. With the mode off, the time is written before every message.
+
+### Merged repeats
+
+Identical consecutive messages collapse into one line marked (×N).
+
+### Tabs
+
+Above the input line: All; Conversations — only player messages and your private messages (server system lines, deaths, quests, colonies, CoreProtect, anticheat and spying on other players' PMs stay out); Global and Local — player messages from the global and the local chat, told apart by the icon after `[X]` (`ꐙ` is global, `ꐘ` is local; the icons are set in the `global` and `local` groups); Private; Joins; Moderation — anticheat (Vulcan, Grim and others), SquadFilter, `[Мат]`, `[Защита]`, kicks and bans, PM spying, CoreProtect output.
+
+The defaults were checked against 14 thousand distinct chat lines from game logs: Conversations gets every player message and not a single service line. Before the rules run, text is normalised: small caps and decorative brackets such as `❪ᴠᴜʟᴄᴀɴ❫` read as `(vulcan)`. A tab appears once the history holds at least one of its messages; the number next to it counts messages since you last looked at it.
+
+Switch by clicking or with Ctrl+Tab / Ctrl+Shift+Tab. The selected tab also filters the on-screen chat when it is closed and is remembered between launches. Hidden messages are not lost: they stay in the history and show on their own tab.
+
+### Tab rules
+
+**Tab rules** live in `config/qualityessentials/chat_tabs.json` (the Tab rules button in the settings opens the file). A group is a set of regular expressions over the message text; a tab shows the groups from `show` (`*` means every message) and removes the groups from `hide`. The file is reloaded on the fly; errors in expressions go to the log and do not break the other rules.
+
+A file from an older rules version is replaced with the new defaults, and the old one is kept next to it as `chat_tabs.json.v<number>.bak`. Use the `(?U)` flag in expressions containing `\W` or `\w`: without it Java treats Cyrillic letters as non-letters.
+
+### Search
+
+Ctrl+F (or "Ctrl+F search" above the input on the right) turns the input line into a search: the chat keeps only the messages with that text in the current tab, the arrows and the wheel step through matches, Enter closes the search and scrolls the chat to the found message with a highlight, Esc closes the search. The text typed before the search comes back.
+
+### "↓ N new"
+
+When the chat is scrolled up, the line above the input shows how many messages arrived below; a click returns to the latest.
+
+### Long messages
+
+The input line takes up to 1,280 characters. A message longer than 256 characters is sent in word-split parts with a 1.5 s pause; in `/msg`, `/tell`, `/w`, `/r`, `/me` and similar commands every part repeats the command and the name. Other commands longer than 256 characters are not sent, and the line above the input explains why. While the text is longer than 216 characters, a counter shows above the input.
+
+### Keyboard layout
+
+The automatic fix is off by default: turn on "Fix layout in messages" and "Fix layout in commands" in the chat settings (updating from 1.1.3 or earlier turns both off once). The fix runs on sending: `ghbdtn` → `привет`, `руддщ` → `hello`, `/ызфцт` and `.ызфцт` → `/spawn`.
+
+A word changes only when it looks clearly more plausible in the other layout: a letter model and dictionaries of frequent chat words in `assets/qualityessentials/layout/`. Online player names, links and addresses, words with digits and `_`, colour codes such as `&a`, words like `iPhone` and the words from the `chatLayoutIgnore` list in `config/qualityessentials.json` are left alone.
+
+A command is fixed only when the other layout gives a command the client knows; in `/msg`, `/tell`, `/w`, `/r`, `/me` and similar the message text is fixed too, and the name after `/msg` is converted when that player is online. The Pause key in the open chat converts the selected text or the whole line by hand.
+
+The layout model is built by `tools/layout/build_layout_model.py` from the Minecraft 26.3 language files in the Loom cache and the dictionaries `tools/layout/seed_ru.txt` and `seed_en.txt`. After editing the dictionaries, rebuild the model and run the tests: `LayoutFixerTest` checks the held-out word sets in `src/test/resources/layout`.
+
+### Books
+
+### Colours and styles
+
+A panel left of the book: 16 colours and styles (bold, italic, underlined, strikethrough, obfuscated, plain). With a selection the formatting applies to the selected text and leaves the text after it alone; without one it applies to the text that follows. Ctrl+B, Ctrl+I and Ctrl+U toggle styles. The page in the editor shows colours the same way as a signed book, and small coloured ticks mark where each code sits.
+
+Arrows, Backspace and Delete skip invisible codes, so the cursor never gets stuck.
+
+### Why colours work on a vanilla server
+
+A vanilla server keeps `§` codes in book and quill pages and turns the pages into text on signing, where those codes show as colours. Plugins may strip them — that depends on the server.
+
+### Pages
+
+"+ New" inserts an empty page after the current one, Delete removes the current one, "← Left" / "Right →" swap it with its neighbour, Ctrl+Enter splits the page at the cursor (formatting carries over), Ctrl+PageUp/PageDown jump to the first and last page, and the mouse wheel turns pages. A book never exceeds 100 pages and 1,024 characters per page; the counters on the right show what is left.
+
+### Pasting
+
+Ctrl+V (and the Paste text button) pastes the clipboard at the cursor, and whatever does not fit continues on new pages after the current one: words are not split and the colour carries over to the next page. A `---` line in the text starts a new page. `§` codes from the clipboard are kept; `&c`, `&l` and others turn into formatting when "&-codes on paste" is on.
+
+### Undo
+
+Ctrl+Z undoes typing, formatting and page actions; Ctrl+Y or Ctrl+Shift+Z redoes.
+
+### Files
+
+Save writes the book to `config/qualityessentials/books/<title>_<date>.txt` (pages separated by a `---` line). Load opens a list of files from that folder with a preview: Insert at cursor or Replace book (Ctrl+Z in the book brings the old pages back). You can put your own UTF-8 texts there, up to 512 KB.
+
+### Reading
+
+A signed book and a book on a lectern get buttons on the right: Copy: Page / Whole book (with Shift, without colours), Save, First, Last. Ctrl+C copies the page, Ctrl+Shift+C the book; Home and End jump to the start and the end.
+
+### Title
+
+"Titles up to 32 characters" lifts the vanilla 15-character limit of the field: the protocol and a vanilla server accept up to 32. Off by default, because server plugins may reject such a title.
+
+### Signs
+
+### Copy
+
+**Copy** puts all lines on the clipboard (one per line) and remembers them, **Paste** spreads the clipboard lines over the sign lines, **Clear** wipes everything. Ctrl+Shift+C and Ctrl+Shift+V do the same from the keyboard, and a plain Ctrl+V with several lines on the clipboard fills the current line and the next ones.
+
+### Mouse and keyboard
+
+Clicking a sign line selects it and places the cursor, Shift+click selects text; Tab and Shift+Tab move between lines; Ctrl+Z and Ctrl+Y undo and redo.
+
+### &-codes
+
+A vanilla server strips `§` codes from signs, so the palette on the left inserts `&c`, `&l` and others, which EssentialsX and similar plugins understand. Below the palette you see how the sign will look if the server understands them.
+
+### Remember and repeat
+
+The middle button (pick block) on a sign remembers the text of the side you are facing, and a line above the hotbar says so. A new sign you have just placed with a sign in hand fills with that text at once; Clear removes it and Paste remembered brings it back. "Confirm at once" closes such a sign without pressing Done, which is handy for placing many identical signs.
+
+### Settings summary
+
+The **Mod Menu → QualityEssentials** screen (or its own key) is built on vanilla tabs and option rows: every module is switched separately, and the HUD editor and chat Tab rules buttons are there too.
+
+Main file `config/qualityessentials.json`; restored chat in `config/qualityessentials/chat/`, remembered shulker boxes in `config/qualityessentials/shulkers/` (per server and world, up to 4,096 boxes), tab rules in `config/qualityessentials/chat_tabs.json`, books in `config/qualityessentials/books/`. InfoMod opens the keyboard map through `QualityEssentialsClient.createKeyboardScreen(Screen)`.
